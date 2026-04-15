@@ -1,0 +1,226 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="detail-section">
+    <div class="detail-container">
+
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="{% url 'home' %}">Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'home' %}">{{ product.category.name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ product.name }}</span>
+        </div>
+
+        <!-- Main Detail Grid -->
+        <div class="detail-grid">
+            <div class="detail-image">
+                <div class="image-wrapper glassmorphic">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    {% elif product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <img src="{% static 'images/earbuds.png' %}" alt="{{ product.name }}">
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="detail-info">
+                <div class="category-pill">{{ product.category.name }}</div>
+                <h1>{{ product.name }}</h1>
+                <p class="detail-price">${{ product.price }}</p>
+                <p class="detail-description">{{ product.description }}</p>
+
+                <div class="stock-badge {% if product.stock > 0 %}in-stock{% else %}out-stock{% endif %}">
+                    {% if product.stock > 0 %}
+                        <i class="fas fa-check-circle"></i> In Stock ({{ product.stock }} available)
+                    {% else %}
+                        <i class="fas fa-times-circle"></i> Out of Stock
+                    {% endif %}
+                </div>
+
+                <div class="detail-actions">
+                    {% if product.stock > 0 %}
+                        <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary detail-btn">
+                            <i class="fas fa-shopping-bag"></i> Add to Cart
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline detail-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                            Unavailable
+                        </button>
+                    {% endif %}
+                    <a href="{% url 'home' %}" class="btn btn-outline detail-btn">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    {% if related %}
+    <div class="related-section">
+        <h2>You Might Also <span class="highlight">Like</span></h2>
+        <div class="related-grid">
+            {% for p in related %}
+            <a href="{% url 'product_detail' p.id %}" class="related-card">
+                {% if p.image %}
+                    <img src="{{ p.image.url }}" alt="{{ p.name }}">
+                {% elif p.image_url %}
+                    <img src="{{ p.image_url }}" alt="{{ p.name }}">
+                {% else %}
+                    <img src="{% static 'images/earbuds.png' %}" alt="{{ p.name }}">
+                {% endif %}
+                <div class="related-info">
+                    <h4>{{ p.name }}</h4>
+                    <span>${{ p.price }}</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<style>
+    .detail-section { min-height: 100vh; padding: 7rem 5% 5rem; background: var(--bg-secondary); }
+
+    .detail-container {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 2.5rem;
+        font-size: 0.9rem;
+        color: var(--text-sec);
+    }
+
+    .breadcrumb a { color: var(--text-sec); text-decoration: none; transition: color 0.2s; }
+    .breadcrumb a:hover { color: var(--accent); }
+    .breadcrumb .fas { font-size: 0.6rem; }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: var(--shadow-lg);
+    }
+
+    @media (max-width: 768px) {
+        .detail-grid { grid-template-columns: 1fr; gap: 2rem; padding: 1.5rem; }
+    }
+
+    .detail-image .image-wrapper {
+        border-radius: 20px;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .detail-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 24px rgba(37,99,235,0.12));
+        transition: transform 0.4s ease;
+    }
+
+    .detail-image img:hover { transform: scale(1.04); }
+
+    .detail-info .category-pill { margin-bottom: 1rem; }
+
+    .detail-info h1 {
+        font-size: 2.4rem;
+        margin-bottom: 0.8rem;
+        line-height: 1.2;
+    }
+
+    .detail-price {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-description {
+        color: var(--text-sec);
+        font-size: 1rem;
+        line-height: 1.8;
+        margin-bottom: 1.8rem;
+    }
+
+    .stock-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.1rem;
+        border-radius: 20px;
+        font-size: 0.88rem;
+        font-weight: 500;
+        margin-bottom: 1.8rem;
+    }
+
+    .stock-badge.in-stock  { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
+    .stock-badge.out-stock  { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+
+    .detail-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .detail-btn { flex: 1; justify-content: center; padding: 0.85rem 1.5rem; border-radius: 8px; font-size: 0.95rem; min-width: 150px; }
+
+    /* Related */
+    .related-section {
+        max-width: 1100px;
+        margin: 4rem auto 0;
+        text-align: center;
+    }
+
+    .related-section h2 { font-size: 2rem; margin-bottom: 2rem; }
+
+    .related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .related-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        display: block;
+    }
+    .related-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: var(--shadow-md); }
+
+    .related-card img {
+        width: 100%;
+        height: 140px;
+        object-fit: contain;
+        padding: 1rem;
+        background: rgba(0,0,0,0.2);
+    }
+
+    .related-info { padding: 1rem; text-align: left; }
+    .related-info h4 { color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.3rem; }
+    .related-info span { color: var(--accent); font-weight: 600; }
+</style>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="product-section" style="padding-top: 100px; min-height: 100vh;">
+    <div class="container" style="flex-direction: column; align-items: stretch; gap: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="font-size: 2.5rem;"><span class="highlight">POS</span> Terminal</h2>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <span class="category-pill">Admin Mode</span>
+                <a href="{% url 'user_panel' %}" class="btn btn-outline" style="padding: 0.5rem 1.2rem; font-size: 0.9rem;">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div style="padding: 1rem; border-radius: 10px; margin-bottom: 2rem; background: {% if message.tags == 'success' %}rgba(0, 240, 255, 0.1){% else %}rgba(255, 0, 0, 0.1){% endif %}; border: 1px solid {% if message.tags == 'success' %}var(--accent){% else %}#ff4d4d{% endif %}; color: {% if message.tags == 'success' %}var(--accent){% else %}#ff4d4d{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem;">
+            <!-- Product Grid -->
+            <div style="background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.5rem; backdrop-filter: blur(10px);">
+                <div style="margin-bottom: 1.5rem; position: relative;">
+                    <input type="text" id="productSearch" placeholder="Search products by name..." style="width: 100%; padding: 1rem 1rem 1rem 3rem; border-radius: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; outline: none; font-size: 1rem;">
+                    <i class="fas fa-search" style="position: absolute; left: 1.2rem; top: 50%; transform: translateY(-50%); color: var(--text-sec);"></i>
+                </div>
+                
+                <div id="productGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; max-height: 600px; overflow-y: auto; padding-right: 0.5rem;">
+                    {% for product in products %}
+                    <div class="product-card" data-name="{{ product.name|lower }}" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 15px; padding: 1rem; cursor: pointer; transition: 0.3s; position: relative;">
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 1rem; border-radius: 10px;">
+                        <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">{{ product.name }}</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="highlight" style="font-weight: 700;">${{ product.price }}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-sec);">Stock: {{ product.stock }}</span>
+                        </div>
+                        <button onclick="selectProduct('{{ product.id }}', '{{ product.name }}', '{{ product.price }}', '{{ product.stock }}')" class="btn btn-primary" style="padding: 0.4rem; width: 100%; margin-top: 1rem; border-radius: 10px; font-size: 0.85rem;">Select</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Sale Summary -->
+            <div style="background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 1.5rem; backdrop-filter: blur(10px); height: fit-content; position: sticky; top: 100px;">
+                <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">Transaction Details</h3>
+                
+                <form id="posForm" method="POST" action="{% url 'pos' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_id" id="selected_product_id">
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.9rem; color: var(--text-sec); margin-bottom: 0.5rem;">Selected Product</label>
+                        <div id="selected_name" style="padding: 1rem; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 10px; font-weight: 600;">No product selected</div>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-size: 0.9rem; color: var(--text-sec); margin-bottom: 0.5rem;">Quantity</label>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="number" name="quantity" id="sale_quantity" value="1" min="1" style="flex: 1; padding: 0.8rem; border-radius: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: white; outline: none;">
+                            <span id="max_stock_label" style="font-size: 0.8rem; color: var(--text-sec);"></span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(0, 240, 255, 0.05); border: 1px dashed var(--accent); border-radius: 15px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--text-sec);">
+                            <span>Unit Price:</span>
+                            <span id="unit_price">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 700; color: white;">
+                            <span>Total:</span>
+                            <span id="total_sale_price" class="highlight">$0.00</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="completeSaleBtn" class="btn btn-primary" style="width: 100%; padding: 1rem;" disabled>
+                        <i class="fas fa-check-circle"></i> Complete Sale
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    #productGrid::-webkit-scrollbar { width: 5px; }
+    #productGrid::-webkit-scrollbar-track { background: transparent; }
+    #productGrid::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+    #productGrid::-webkit-scrollbar-thumb:hover { background: var(--text-sec); }
+    
+    .product-card:hover {
+        border-color: var(--accent) !important;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 240, 255, 0.1);
+    }
+</style>
+
+<script>
+    const searchInput = document.getElementById('productSearch');
+    const cards = document.querySelectorAll('.product-card');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name');
+            if (name.includes(term)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    let currentPrice = 0;
+    let currentStock = 0;
+
+    function selectProduct(id, name, price, stock) {
+        document.getElementById('selected_product_id').value = id;
+        document.getElementById('selected_name').innerText = name;
+        document.getElementById('unit_price').innerText = '$' + price;
+        document.getElementById('max_stock_label').innerText = 'Available: ' + stock;
+        
+        currentPrice = parseFloat(price);
+        currentStock = parseInt(stock);
+        
+        const qInput = document.getElementById('sale_quantity');
+        qInput.max = stock;
+        qInput.value = 1;
+        
+        document.getElementById('completeSaleBtn').disabled = false;
+        calculateTotal();
+        
+        // Highlight selection
+        cards.forEach(c => c.classList.remove('selected'));
+        // Find the card and add selected style (optional)
+    }
+
+    const qtyInput = document.getElementById('sale_quantity');
+    qtyInput.addEventListener('input', calculateTotal);
+
+    function calculateTotal() {
+        const qty = parseInt(qtyInput.value) || 0;
+        if (qty > currentStock) {
+            qtyInput.value = currentStock;
+        }
+        const total = (parseInt(qtyInput.value) || 0) * currentPrice;
+        document.getElementById('total_sale_price').innerText = '$' + total.toFixed(2);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patel | Premium Audio & Wearables</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">Patel<span>.</span></div>
+        <ul class="nav-links">
+            <li><a href="{% url 'home' %}"
+                    class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a></li>
+            <li><a href="{% url 'earbuds' %}"
+                    class="{% if request.resolver_match.url_name == 'earbuds' %}active{% endif %}">Earbuds</a></li>
+            <li><a href="{% url 'headphones' %}"
+                    class="{% if request.resolver_match.url_name == 'headphones' %}active{% endif %}">Headphones</a>
+            </li>
+            <li><a href="{% url 'watches' %}"
+                    class="{% if request.resolver_match.url_name == 'watches' %}active{% endif %}">Watches</a></li>
+        </ul>
+        <div class="nav-icons" style="align-items: center;">
+            <div class="nav-search" id="nav-search">
+                <div style="position:relative;">
+                <form action="{% url 'search' %}" method="GET" class="nav-search-form" id="nav-search-form" autocomplete="off">
+                    <input type="text" name="q" id="nav-search-input" placeholder="Search products...">
+                    <button type="submit"><i class="fas fa-search"></i></button>
+                </form>
+                <div class="nav-suggest-dropdown" id="nav-suggest-dropdown"></div>
+                </div>
+                <button class="search-icon-btn" id="search-icon-btn" onclick="toggleNavSearch(event)">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <a href="{% url 'cart' %}" title="Shopping Cart"><i class="fas fa-shopping-bag"></i></a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'user_panel' %}" title="Profile"><span
+                    style="font-size: 0.9rem; font-weight: 500; margin-right: 0.5rem;">{{ user.username }}</span></a>
+            <a href="{% url 'logout' %}" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
+            {% else %}
+            <a href="{% url 'login' %}" title="Login"><i class="fas fa-user"></i></a>
+            {% endif %}
+        </div>
+        <div class="hamburger">
+            <i class="fas fa-bars"></i>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">Patel<span>.</span></div>
+            <p>Premium Audio & Wearables. Redefining your digital experience with industry-leading technology.</p>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Patel. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- GSAP for Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Main JS -->
+    <script src="{% static 'js/script.js' %}"></script>
+
+    <style>
+        /* Navbar Search */
+        .nav-search { position: relative; display: flex; align-items: center; }
+        .nav-search-form {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            max-width: 0;
+            opacity: 0;
+            transition: max-width 0.35s ease, opacity 0.3s ease;
+        }
+        .nav-search-form.open { max-width: 240px; opacity: 1; }
+        .nav-search-form input {
+            padding: 0.4rem 0.8rem;
+            background: var(--bg-secondary);
+            border: 1.5px solid var(--border);
+            border-radius: 8px 0 0 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.88rem;
+            outline: none;
+            width: 180px;
+        }
+        .nav-search-form input:focus { border-color: var(--accent); }
+        .nav-search-form button {
+            padding: 0.4rem 0.75rem;
+            background: var(--accent);
+            border: none;
+            border-radius: 0 8px 8px 0;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .search-icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-sec);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.45rem 0.6rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .search-icon-btn:hover { color: var(--accent); background: var(--accent-light); }
+
+        /* Nav autocomplete dropdown */
+        .nav-suggest-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 260px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 9999;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+        .nav-suggest-dropdown.show { display: block; }
+        .nav-suggest-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.65rem 1rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            transition: background 0.15s;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-suggest-item:last-child { border-bottom: none; }
+        .nav-suggest-item:hover { background: var(--accent-light); color: var(--accent); }
+        .nav-suggest-item .ns-name { font-weight: 500; }
+        .nav-suggest-item .ns-price { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+
+        /* Cart qty controls */
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            background: var(--bg-secondary);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .qty-btn:hover { background: var(--accent); color: #fff; }
+        .qty-num {
+            padding: 0 0.8rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 30px;
+            text-align: center;
+        }
+        .item-subtotal { font-size: 1rem; color: var(--accent); font-weight: 700; }
+        .remove-btn {
+            color: #EF4444;
+            text-decoration: none;
+            font-size: 0.88rem;
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .remove-btn:hover { background: #FEE2E2; }
+    </style>
+
+    <script>
+        function toggleNavSearch(e) {
+            e.stopPropagation();
+            const form = document.getElementById('nav-search-form');
+            const btn = document.getElementById('search-icon-btn');
+            const isOpen = form.classList.toggle('open');
+            if (isOpen) {
+                document.getElementById('nav-search-input').focus();
+                btn.style.display = 'none';
+            }
+        }
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('nav-search');
+            if (wrapper && !wrapper.contains(e.target)) {
+                document.getElementById('nav-search-form').classList.remove('open');
+                document.getElementById('search-icon-btn').style.display = '';
+                document.getElementById('nav-suggest-dropdown').classList.remove('show');
+            }
+        });
+
+        // ── Navbar Live Autocomplete ──
+        (function () {
+            const navInput    = document.getElementById('nav-search-input');
+            const navDropdown = document.getElementById('nav-suggest-dropdown');
+            let navTimer;
+
+            navInput.addEventListener('input', function () {
+                clearTimeout(navTimer);
+                const q = this.value.trim();
+                if (!q) { navDropdown.classList.remove('show'); navDropdown.innerHTML = ''; return; }
+
+                navTimer = setTimeout(() => {
+                    fetch(`/search/suggest/?q=${encodeURIComponent(q)}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (!data.results.length) { navDropdown.classList.remove('show'); navDropdown.innerHTML = ''; return; }
+                            navDropdown.innerHTML = data.results.map(p =>
+                                `<a class="nav-suggest-item" href="/product/${p.id}/">
+                                    <span class="ns-name">${p.name}</span>
+                                    <span class="ns-price">$${parseFloat(p.price).toFixed(2)}</span>
+                                </a>`
+                            ).join('');
+                            navDropdown.classList.add('show');
+                        });
+                }, 250);
+            });
+        })();
+    </script>
+</body>
+
+</html>

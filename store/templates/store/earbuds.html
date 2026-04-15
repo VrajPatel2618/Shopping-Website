@@ -1,0 +1,43 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+{% for product in products %}
+<section id="product-{{ product.id }}" class="product-section"
+    style="min-height: 100vh; display: flex; align-items: center; padding-top: 50px;">
+    <div class="container {% if forloop.counter|divisibleby:2 %}reverse{% endif %}">
+        <div class="product-text">
+            <div class="category-pill">{{ product.category.name }}</div>
+            <h2><span class="highlight">{{ product.name }}</span></h2>
+            <p>{{ product.description }}</p>
+            <ul class="features">
+                <li><i class="fas fa-check"></i> Premium Audio Quality</li>
+                <li><i class="fas fa-check"></i> Ergonomic Fit</li>
+                <li><i class="fas fa-check"></i> 1-Year Warranty</li>
+            </ul>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
+                <a href="{% url 'product_detail' product.id %}" class="btn btn-outline">View Details</a>
+                <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary">Add to Cart — ${{ product.price }}</a>
+            </div>
+        </div>
+        <div class="product-image">
+            <div class="image-wrapper glassmorphic">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% elif product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                {% else %}
+                    <img src="{% static 'images/earbuds.png' %}" alt="{{ product.name }}">
+                {% endif %}
+                <div class="floating-badge">In Stock</div>
+            </div>
+        </div>
+    </div>
+</section>
+{% empty %}
+<section class="product-section"
+    style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <h2>More products coming soon!</h2>
+</section>
+{% endfor %}
+{% endblock %}

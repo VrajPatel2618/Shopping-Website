@@ -1,0 +1,274 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="search-section">
+    <div class="search-container">
+
+        <div class="search-header">
+            <h1>
+                {% if query %}
+                    <span class="highlight">{{ results.count }}</span>
+                    result{{ results.count|pluralize }} for &ldquo;<span class="highlight">{{ query }}</span>&rdquo;
+                {% else %}
+                    Search <span class="highlight">Products</span>
+                {% endif %}
+            </h1>
+
+            <!-- Search bar with live autocomplete -->
+            <div class="search-input-wrapper" id="page-search-wrapper">
+                <form method="GET" action="{% url 'search' %}" class="search-form-main" id="page-search-form" autocomplete="off">
+                    <input type="text" name="q" id="page-search-input" value="{{ query }}" placeholder="Search earbuds, headphones, watches..." autofocus>
+                    <button type="submit"><i class="fas fa-search"></i></button>
+                </form>
+                <div class="suggest-dropdown" id="page-suggest-dropdown"></div>
+            </div>
+        </div>
+
+        {% if results %}
+        <div class="search-grid">
+            {% for product in results %}
+            <a href="{% url 'product_detail' product.id %}" class="search-card">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% elif product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                {% else %}
+                    <img src="{% static 'images/earbuds.png' %}" alt="{{ product.name }}">
+                {% endif %}
+                <div class="search-card-body">
+                    <div class="category-pill" style="font-size:0.7rem; padding:3px 10px; margin-bottom:0.5rem;">
+                        {{ product.category.name }}
+                    </div>
+                    <h3>{{ product.name }}</h3>
+                    <p>{{ product.description|truncatechars:90 }}</p>
+                    <div class="search-card-footer">
+                        <span class="s-price">${{ product.price }}</span>
+                        <span class="stock-label {% if product.stock > 0 %}s-instock{% else %}s-outstock{% endif %}">
+                            {% if product.stock > 0 %}In Stock{% else %}Out of Stock{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% elif query %}
+        <div class="no-results">
+            <i class="fas fa-search fa-3x"></i>
+            <h3>No results found</h3>
+            <p>Try a different term — like "earbuds", "headphones", or "watch".</p>
+            <a href="{% url 'home' %}" class="btn btn-primary" style="margin-top:1.5rem;">Browse All Products</a>
+        </div>
+
+        {% else %}
+        <div class="no-results">
+            <i class="fas fa-search fa-3x"></i>
+            <p>Type something above to search our catalog.</p>
+        </div>
+        {% endif %}
+
+        <!-- ── Recommendations Section ── -->
+        {% if recommendations %}
+        <div class="rec-section">
+            <h2>
+                {% if results %}
+                    You Might Also <span class="highlight">Like</span>
+                {% elif query %}
+                    Popular <span class="highlight">Picks</span> Instead
+                {% else %}
+                    Featured <span class="highlight">Products</span>
+                {% endif %}
+            </h2>
+            <div class="rec-grid">
+                {% for p in recommendations %}
+                <a href="{% url 'product_detail' p.id %}" class="rec-card">
+                    {% if p.image %}
+                        <img src="{{ p.image.url }}" alt="{{ p.name }}">
+                    {% elif p.image_url %}
+                        <img src="{{ p.image_url }}" alt="{{ p.name }}">
+                    {% else %}
+                        <img src="{% static 'images/earbuds.png' %}" alt="{{ p.name }}">
+                    {% endif %}
+                    <div class="rec-info">
+                        <span class="rec-cat">{{ p.category.name }}</span>
+                        <h4>{{ p.name }}</h4>
+                        <span class="rec-price">${{ p.price }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+<style>
+    .search-section { min-height: 100vh; padding: 8rem 5% 4rem; background: var(--bg-secondary); }
+    .search-container { max-width: 1100px; margin: 0 auto; }
+
+    .search-header { margin-bottom: 3rem; }
+    .search-header h1 { font-size: 2rem; margin-bottom: 1.5rem; }
+
+    /* ── Search Input + Autocomplete ── */
+    .search-input-wrapper { position: relative; display: inline-block; width: 100%; max-width: 620px; }
+    .search-form-main { display: flex; }
+
+    .search-form-main input {
+        flex: 1;
+        padding: 0.85rem 1.2rem;
+        background: #fff;
+        border: 1.5px solid var(--border);
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .search-form-main input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .search-form-main button {
+        padding: 0.85rem 1.4rem;
+        background: var(--accent);
+        border: none;
+        border-radius: 0 8px 8px 0;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .search-form-main button:hover { background: var(--accent-hover); }
+    .search-form-main button:hover { opacity: 0.85; }
+
+    .suggest-dropdown {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 42px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        z-index: 999;
+        display: none;
+        box-shadow: var(--shadow-lg);
+    }
+    .suggest-dropdown.show { display: block; }
+    .suggest-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.7rem 1.1rem; text-decoration: none;
+        color: var(--text-primary); font-size: 0.9rem;
+        transition: background 0.15s;
+        border-bottom: 1px solid var(--border);
+    }
+    .suggest-item:last-child { border-bottom: none; }
+    .suggest-item:hover { background: var(--accent-light); color: var(--accent); }
+    .suggest-item .s-name { font-weight: 500; }
+    .suggest-item .s-price { font-size: 0.82rem; color: var(--accent); font-weight: 600; }
+
+    /* ── Search Results Grid ── */
+    .search-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 4rem;
+    }
+    .search-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        display: block;
+        transition: all 0.25s ease;
+    }
+    .search-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: var(--shadow-md); }
+    .search-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: contain;
+        padding: 1.5rem;
+        background: rgba(0,0,0,0.2);
+    }
+    .search-card-body { padding: 1.2rem; }
+    .search-card-body h3 { color: var(--text-primary); font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .search-card-body p { color: var(--text-sec); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem; }
+    .search-card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .s-price { font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+    .stock-label { font-size: 0.75rem; padding: 3px 8px; border-radius: 20px; }
+    .s-instock  { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+    .s-outstock { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+
+    /* ── Recommendations ── */
+    .rec-section { margin-top: 4rem; }
+    .rec-section h2 { font-size: 1.8rem; margin-bottom: 2rem; text-align: center; }
+    .rec-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 1.2rem;
+    }
+    .rec-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        display: block;
+    }
+    .rec-card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: var(--shadow-md); }
+    .rec-card img {
+        width: 100%;
+        height: 130px;
+        object-fit: contain;
+        padding: 1rem;
+        background: rgba(0,0,0,0.2);
+    }
+    .rec-info { padding: 0.9rem; }
+    .rec-cat { font-size: 0.7rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.05em; }
+    .rec-info h4 { color: var(--text-primary); font-size: 0.9rem; margin: 0.3rem 0; line-height: 1.3; }
+    .rec-price { font-size: 1rem; font-weight: 700; color: var(--accent); }
+
+    .no-results { text-align: center; padding: 5rem 0; color: var(--text-sec); }
+    .no-results .fas { margin-bottom: 1.5rem; opacity: 0.4; }
+    .no-results h3 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-primary); }
+</style>
+
+<script>
+(function () {
+    const input    = document.getElementById('page-search-input');
+    const dropdown = document.getElementById('page-suggest-dropdown');
+    let debounceTimer;
+
+    input.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (!q) { dropdown.classList.remove('show'); dropdown.innerHTML = ''; return; }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/search/suggest/?q=${encodeURIComponent(q)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.results.length) { dropdown.classList.remove('show'); dropdown.innerHTML = ''; return; }
+                    dropdown.innerHTML = data.results.map(p =>
+                        `<a class="suggest-item" href="/product/${p.id}/">
+                            <span class="s-name">${p.name}</span>
+                            <span class="s-price">$${parseFloat(p.price).toFixed(2)}</span>
+                        </a>`
+                    ).join('');
+                    dropdown.classList.add('show');
+                });
+        }, 250);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('page-search-wrapper').contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+})();
+</script>
+{% endblock %}

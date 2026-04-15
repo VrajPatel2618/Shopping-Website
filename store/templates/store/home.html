@@ -1,0 +1,91 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block content %}
+<section id="hero" class="hero-section" style="background-image: url('{% static 'images/hero_bg.png' %}');">
+    <div class="overlay"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">Premium Sound.<br><span class="highlight">Extraordinary</span> Experience.</h1>
+        <p class="hero-subtitle">Industry-leading high-fidelity audio gear and premium wearables designed for exceptional everyday experiences.</p>
+        <div class="hero-actions">
+            <a href="{% url 'earbuds' %}" class="btn btn-primary">Shop Now <i class="fas fa-arrow-right"></i></a>
+            <a href="#earbuds" class="btn btn-outline">Explore Products</a>
+        </div>
+        <div class="trust-strip">
+            <div class="trust-item"><i class="fas fa-shipping-fast"></i> Free Shipping</div>
+            <div class="trust-item"><i class="fas fa-shield-alt"></i> 2-Year Warranty</div>
+            <div class="trust-item"><i class="fas fa-undo"></i> 30-Day Returns</div>
+            <div class="trust-item"><i class="fas fa-lock"></i> Secure Checkout</div>
+        </div>
+    </div>
+</section>
+
+<section id="earbuds" class="product-section">
+    <div class="container reverse">
+        <div class="product-text" id="earbuds-text">
+            <div class="category-pill">True Wireless</div>
+            <h2>Quantum <span class="highlight">Earbuds</span></h2>
+            <p>Immerse yourself in vivid soundscapes with active noise cancellation and a mesmerizing battery life. Our
+                Quantum Earbuds fit perfectly and sound simply extraordinary.</p>
+            <ul class="features">
+                <li><i class="fas fa-check"></i> Adaptive ANC</li>
+                <li><i class="fas fa-check"></i> 48-Hour Battery Life</li>
+                <li><i class="fas fa-check"></i> Spatial Audio</li>
+            </ul>
+            <button class="btn btn-primary">Discover Quantum</button>
+        </div>
+        <div class="product-image" id="earbuds-image">
+            <div class="image-wrapper glassmorphic">
+                <img src="{% static 'images/earbuds.png' %}" alt="Quantum Earbuds">
+                <div class="floating-badge">Now $199</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="headphones" class="product-section dark-alt">
+    <div class="container">
+        <div class="product-image" id="headphones-image">
+            <div class="image-wrapper glassmorphic dark-glass">
+                <img src="{% static 'images/headphones.png' %}" alt="Zenith Headphones">
+                <div class="floating-badge alternate">Now $349</div>
+            </div>
+        </div>
+        <div class="product-text" id="headphones-text">
+            <div class="category-pill">Over-Ear Audio</div>
+            <h2>Zenith <span class="highlight">Headphones</span></h2>
+            <p>Experience studio-quality audio enclosed in premium materials. Zenith Headphones deliver pure acoustic
+                isolation and unparalleled comfort for critical listening.</p>
+            <ul class="features">
+                <li><i class="fas fa-check"></i> Lossless High-Res Audio</li>
+                <li><i class="fas fa-check"></i> Memory Foam Cushions</li>
+                <li><i class="fas fa-check"></i> Transparent Mode</li>
+            </ul>
+            <button class="btn btn-primary outline-light">Explore Zenith</button>
+        </div>
+    </div>
+</section>
+
+<section id="watches" class="product-section">
+    <div class="container reverse">
+        <div class="product-text" id="watches-text">
+            <div class="category-pill">Smart Wearables</div>
+            <h2>Titan <span class="highlight">Watch Pro</span></h2>
+            <p>Crafted from aerospace-grade titanium, the Titan Pro watch tracks your vitals, your workouts, and keeps
+                you connected—all on an ultra-bright edge-to-edge display.</p>
+            <ul class="features">
+                <li><i class="fas fa-check"></i> Always-On Retina Display</li>
+                <li><i class="fas fa-check"></i> Blood Oxygen & ECG</li>
+                <li><i class="fas fa-check"></i> 100m Water Resistance</li>
+            </ul>
+            <button class="btn btn-primary">View Titan Pro</button>
+        </div>
+        <div class="product-image" id="watches-image">
+            <div class="image-wrapper glassmorphic">
+                <img src="{% static 'images/smartwatch.png' %}" alt="Titan Smartwatch">
+                <div class="floating-badge alt-3">Now $499</div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
