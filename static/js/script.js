@@ -76,3 +76,111 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         if (target) window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
     });
 });
+
+// ── Theme Switcher ──
+function applyTheme(theme) {
+    const html = document.documentElement;
+    if (theme === 'default') {
+        html.removeAttribute('data-theme');
+    } else {
+        html.setAttribute('data-theme', theme);
+    }
+    // Update active option highlight
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.theme === theme);
+    });
+    // Update navbar icon
+    const icon = document.getElementById('theme-icon');
+    if (icon) {
+        if (theme === 'dark')         icon.className = 'fas fa-moon';
+        else if (theme === 'light')   icon.className = 'fas fa-sun';
+        else                          icon.className = 'fas fa-circle-half-stroke';
+    }
+}
+
+function setTheme(theme) {
+    localStorage.setItem('theme', theme);
+    applyTheme(theme);
+    document.getElementById('theme-dropdown').classList.remove('open');
+}
+
+// Init on load
+(function () {
+    const saved = localStorage.getItem('theme') || 'default';
+    applyTheme(saved);
+
+    document.getElementById('theme-toggle-btn').addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.getElementById('theme-dropdown').classList.toggle('open');
+        document.getElementById('currency-dropdown').classList.remove('open');
+    });
+
+    document.addEventListener('click', function () {
+        const dd = document.getElementById('theme-dropdown');
+        if (dd) dd.classList.remove('open');
+        const cd = document.getElementById('currency-dropdown');
+        if (cd) cd.classList.remove('open');
+    });
+})();
+
+// ── Currency (always INR) ──
+const USD_TO_INR = 84;
+
+/** Formats a USD amount always as INR ₹ */
+function formatPrice(usd) {
+    const amt = parseFloat(usd);
+    return '₹' + Math.round(amt * USD_TO_INR).toLocaleString('en-IN');
+}
+
+// Step 1: Scan the DOM and wrap all $X.XX price values in tagged spans
+function initPrices() {
+    const priceRegex = /\$([\d,]+(?:\.\d+)?)/g;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+        // Skip navbar, scripts, and elements already processed
+        const parent = node.parentElement;
+        if (!parent) continue;
+        if (parent.closest('#currency-switcher, .theme-switcher, script, style')) continue;
+        if (parent.classList && parent.classList.contains('price-val')) continue;
+        if (priceRegex.test(node.textContent)) nodes.push(node);
+        priceRegex.lastIndex = 0;
+    }
+    nodes.forEach(textNode => {
+        const frag = document.createDocumentFragment();
+        let last = 0;
+        const text = textNode.textContent;
+        let m;
+        priceRegex.lastIndex = 0;
+        while ((m = priceRegex.exec(text)) !== null) {
+            if (m.index > last) {
+                frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+            }
+            const span = document.createElement('span');
+            span.className = 'price-val';
+            span.dataset.usd = m[1];
+            span.textContent = m[0];
+            frag.appendChild(span);
+            last = m.index + m[0].length;
+        }
+        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+        textNode.parentNode.replaceChild(frag, textNode);
+    });
+}
+
+// Step 2: Apply INR to all tagged price spans
+function applyCurrency() {
+    document.querySelectorAll('.price-val').forEach(el => {
+        const usd = parseFloat(el.dataset.usd);
+        el.textContent = '₹' + Math.round(usd * USD_TO_INR).toLocaleString('en-IN');
+    });
+}
+
+function setCurrency() {} // kept for safety, no-op
+
+// Init on DOMContentLoaded — always INR
+document.addEventListener('DOMContentLoaded', function () {
+    initPrices();
+    applyCurrency();
+});

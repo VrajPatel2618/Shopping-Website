@@ -21,4 +21,10 @@ urlpatterns = [
     path("cart/remove/<int:item_id>/", views.remove_from_cart, name="remove_from_cart"),
     path("pos/", views.pos_view, name="pos"),
     path("invoice/<int:order_id>/", views.generate_invoice, name="invoice_detail"),
+    path("profile/edit/", views.edit_profile, name="edit_profile"),
+    path("order/delete/<int:order_id>/", views.delete_order, name="delete_order"),
+    path("orders/", views.admin_orders, name="admin_orders"),
+    path("orders/<int:order_id>/", views.admin_order_detail, name="admin_order_detail"),
+    path("orders/<int:order_id>/accept/", views.admin_accept_order, name="admin_accept_order"),
+    path("orders/<int:order_id>/deliver/", views.admin_deliver_order, name="admin_deliver_order"),
 ]

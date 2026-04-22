@@ -1,0 +1,292 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<section class="edit-section">
+    <div class="edit-container">
+
+        <!-- Page Header -->
+        <div class="edit-header">
+            <a href="{% url 'user_panel' %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2>Edit <span class="highlight">Profile</span></h2>
+            <p class="edit-subtitle">Manage your account information</p>
+        </div>
+
+        {% if messages %}
+        <div class="messages-wrap">
+            {% for message in messages %}
+            <div class="alert {{ message.tags }}">
+                <i class="fas {% if 'success' in message.tags %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="edit-grid">
+
+            <!-- ── Left: Account Info ── -->
+            <div class="edit-card">
+                <div class="card-title">
+                    <i class="fas fa-user-circle"></i>
+                    Account Information
+                </div>
+
+                {% if is_google_user %}
+                <div class="google-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16px" height="16px">
+                        <path fill="#EA4335" d="M24 9.5c3.1 0 5.7 1.1 7.8 2.8l5.8-5.8C33.9 3.5 29.2 1.5 24 1.5 14.9 1.5 7.2 7 3.5 14.8l6.8 5.3C12.1 13.7 17.6 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.5 24c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.5 2.8-2.2 5.2-4.6 6.8l7.1 5.5C43.2 36.5 46.5 30.7 46.5 24z"/>
+                        <path fill="#FBBC05" d="M10.3 28.2c-.5-1.4-.8-2.8-.8-4.2s.3-2.8.8-4.2l-6.8-5.3C1.8 17 1 20.4 1 24s.8 7 2.5 9.5l6.8-5.3z"/>
+                        <path fill="#34A853" d="M24 46.5c5.2 0 9.5-1.7 12.7-4.6l-7.1-5.5c-1.8 1.2-4.1 1.9-5.6 1.9-6.4 0-11.9-4.2-13.7-10.1l-6.8 5.3C7.2 41 14.9 46.5 24 46.5z"/>
+                    </svg>
+                    Signed in with Google
+                </div>
+                {% endif %}
+
+                <form method="POST" class="edit-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_info">
+
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-at"></i> Username
+                        </label>
+                        <input type="text" id="username" name="username"
+                               value="{{ user.username }}"
+                               placeholder="Your username">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <input type="email" id="email" name="email"
+                               value="{{ user.email }}"
+                               placeholder="your@email.com">
+                        {% if is_google_user %}
+                        <small class="help-note">
+                            <i class="fas fa-info-circle"></i>
+                            Your email is managed by Google. Changes here only update the local copy.
+                        </small>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary save-btn">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- ── Right: Password Change ── -->
+            <div class="edit-card">
+                <div class="card-title">
+                    <i class="fas fa-lock"></i>
+                    Change Password
+                </div>
+
+                {% if is_google_user %}
+                <div class="google-note">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <strong>Password managed by Google</strong>
+                        <p>You signed in with Google OAuth. Your password is managed by Google — you don't have a local password to change.</p>
+                        <a href="https://myaccount.google.com/security" target="_blank" class="google-link">
+                            Manage Google Account <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <form method="POST" class="edit-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_password">
+
+                    <div class="form-group">
+                        <label for="current_password">
+                            <i class="fas fa-key"></i> Current Password
+                        </label>
+                        <div class="pw-wrap">
+                            <input type="password" id="current_password" name="current_password"
+                                   placeholder="Enter current password" required>
+                            <button type="button" class="eye-btn" onclick="togglePw('current_password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="new_password">
+                            <i class="fas fa-lock"></i> New Password
+                        </label>
+                        <div class="pw-wrap">
+                            <input type="password" id="new_password" name="new_password"
+                                   placeholder="Min 8 characters" required>
+                            <button type="button" class="eye-btn" onclick="togglePw('new_password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">
+                            <i class="fas fa-lock"></i> Confirm New Password
+                        </label>
+                        <div class="pw-wrap">
+                            <input type="password" id="confirm_password" name="confirm_password"
+                                   placeholder="Re-enter new password" required>
+                            <button type="button" class="eye-btn" onclick="togglePw('confirm_password', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary save-btn">
+                        <i class="fas fa-shield-alt"></i> Update Password
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<script>
+function togglePw(fieldId, btn) {
+    const input = document.getElementById(fieldId);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+</script>
+
+<style>
+    .edit-section {
+        min-height: 100vh;
+        padding: 7rem 5% 4rem;
+        background: var(--bg-secondary);
+    }
+    .edit-container { max-width: 900px; margin: 0 auto; }
+
+    /* Header */
+    .edit-header { margin-bottom: 2rem; }
+    .back-link {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        color: var(--text-sec); font-size: 0.88rem;
+        text-decoration: none; margin-bottom: 1rem;
+        transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--accent); }
+    .edit-header h2 { font-size: 2rem; color: var(--text-primary); margin-bottom: 0.3rem; }
+    .edit-subtitle { color: var(--text-sec); font-size: 0.92rem; }
+
+    /* Messages */
+    .messages-wrap { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .alert { padding: 0.8rem 1.1rem; border-radius: 10px; font-size: 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
+    .alert.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #16a34a; }
+    .alert.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: #dc2626; }
+
+    /* Grid */
+    .edit-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    @media (max-width: 700px) { .edit-grid { grid-template-columns: 1fr; } }
+
+    /* Card */
+    .edit-card {
+        background: var(--bg-color);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: var(--shadow-lg);
+    }
+    .card-title {
+        display: flex; align-items: center; gap: 0.65rem;
+        font-size: 1.05rem; font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .card-title i { color: var(--accent); }
+
+    /* Google badge */
+    .google-badge {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.8rem; font-weight: 600;
+        color: var(--text-sec);
+        margin-bottom: 1.25rem;
+    }
+
+    /* Form */
+    .edit-form { display: flex; flex-direction: column; gap: 1.1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-group label {
+        font-size: 0.83rem; font-weight: 600;
+        color: var(--text-primary);
+        display: flex; align-items: center; gap: 0.4rem;
+    }
+    .form-group label i { color: var(--accent); font-size: 0.78rem; }
+    .form-group input {
+        width: 100%; padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: inherit; font-size: 0.95rem;
+        transition: 0.2s ease;
+        box-sizing: border-box;
+    }
+    .form-group input:focus {
+        outline: none; border-color: var(--accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+    .help-note { font-size: 0.78rem; color: var(--text-sec); display: flex; align-items: center; gap: 0.4rem; }
+    .save-btn { justify-content: center; padding: 0.85rem; border-radius: 8px; margin-top: 0.5rem; }
+
+    /* Password field with eye toggle */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 3rem; }
+    .eye-btn {
+        position: absolute; right: 0.75rem; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: none;
+        color: var(--text-sec); cursor: pointer;
+        font-size: 0.9rem; padding: 0.2rem;
+        transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--accent); }
+
+    /* Google note (no password) */
+    .google-note {
+        display: flex; gap: 1rem; align-items: flex-start;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    .google-note > i {
+        font-size: 1.4rem; color: var(--accent);
+        margin-top: 0.1rem; flex-shrink: 0;
+    }
+    .google-note strong { color: var(--text-primary); font-size: 0.95rem; display: block; margin-bottom: 0.4rem; }
+    .google-note p { color: var(--text-sec); font-size: 0.86rem; line-height: 1.6; margin-bottom: 0.75rem; }
+    .google-link {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: #4285F4; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    }
+    .google-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}

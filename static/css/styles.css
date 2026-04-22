@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ── Root Variables ── */
+/* ── Root Variables (Default Theme) ── */
 :root {
     --bg-color:      #FFFFFF;
     --bg-secondary:  #F5F5F5;
@@ -16,6 +16,56 @@
     --shadow-md:     0 4px 16px rgba(0,0,0,0.08);
     --shadow-lg:     0 10px 40px rgba(0,0,0,0.1);
     --radius:        12px;
+    --navbar-bg:     rgba(255,255,255,0.95);
+    --footer-bg:     #1F2937;
+}
+
+/* ── Light Theme ── */
+[data-theme="light"] {
+    --bg-color:      #FDFCF8;
+    --bg-secondary:  #F2EEE8;
+    --text-primary:  #2C2C2C;
+    --text-sec:      #737373;
+    --accent:        #0EA5E9;
+    --accent-light:  #E0F2FE;
+    --accent-hover:  #0284C7;
+    --border:        #E0DAD3;
+    --shadow-sm:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+    --shadow-md:     0 4px 16px rgba(0,0,0,0.07);
+    --shadow-lg:     0 10px 40px rgba(0,0,0,0.08);
+    --navbar-bg:     rgba(253,252,248,0.95);
+    --footer-bg:     #2C2C2C;
+}
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+    --bg-color:      #0D1117;
+    --bg-secondary:  #161B22;
+    --text-primary:  #E6EDF3;
+    --text-sec:      #8B949E;
+    --accent:        #58A6FF;
+    --accent-light:  #1C2A3A;
+    --accent-hover:  #79B8FF;
+    --border:        #30363D;
+    --shadow-sm:     0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-md:     0 4px 16px rgba(0,0,0,0.35);
+    --shadow-lg:     0 10px 40px rgba(0,0,0,0.4);
+    --navbar-bg:     rgba(13,17,23,0.97);
+    --footer-bg:     #010409;
+}
+
+[data-theme="dark"] .image-wrapper.dark-glass {
+    background: #161B22;
+    border-color: #30363D;
+}
+
+[data-theme="dark"] .overlay {
+    background: linear-gradient(
+        160deg,
+        rgba(13,17,23,0.88) 0%,
+        rgba(22,27,34,0.75) 40%,
+        rgba(13,17,23,0.5) 100%
+    );
 }
 
 /* ── Reset ── */
@@ -50,7 +100,7 @@ a { text-decoration: none; color: inherit; }
     top: 0;
     width: 100%;
     z-index: 1000;
-    background: rgba(255,255,255,0.95);
+    background: var(--navbar-bg);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
@@ -355,7 +405,17 @@ a { text-decoration: none; color: inherit; }
     height: auto;
     border-radius: 12px;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    transition: mix-blend-mode 0.3s;
+}
+
+[data-theme="dark"] .image-wrapper img {
+    mix-blend-mode: lighten;
+}
+
+[data-theme="light"] .image-wrapper img {
+    mix-blend-mode: multiply;
 }
 
 .image-wrapper.dark-glass {
@@ -385,7 +445,7 @@ a { text-decoration: none; color: inherit; }
 /* ── Footer ── */
 .footer {
     padding: 4rem 5% 2rem;
-    background: var(--text-primary);
+    background: var(--footer-bg);
     text-align: center;
 }
 
@@ -435,3 +495,62 @@ a { text-decoration: none; color: inherit; }
     .hero-title { font-size: 2.2rem; }
     .product-text h2 { font-size: 2rem; }
 }
+
+/* ── Theme Switcher ── */
+.theme-switcher { position: relative; }
+
+.theme-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--text-sec);
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+}
+.theme-btn:hover { color: var(--accent); background: var(--accent-light); }
+
+.theme-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--bg-color);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    min-width: 155px;
+    overflow: hidden;
+    display: none;
+    z-index: 2000;
+    animation: dropIn 0.18s ease;
+}
+@keyframes dropIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.theme-dropdown.open { display: block; }
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+}
+.theme-option:hover { background: var(--accent-light); color: var(--accent); }
+.theme-option.active { color: var(--accent); background: var(--accent-light); font-weight: 600; }
+.theme-option i { width: 16px; text-align: center; font-size: 0.85rem; }

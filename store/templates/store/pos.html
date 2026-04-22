@@ -31,7 +31,11 @@
                 <div id="productGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; max-height: 600px; overflow-y: auto; padding-right: 0.5rem;">
                     {% for product in products %}
                     <div class="product-card" data-name="{{ product.name|lower }}" style="background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: 15px; padding: 1rem; cursor: pointer; transition: 0.3s; position: relative;">
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 1rem; border-radius: 10px;">
+                        <img src="{% if product.image %}{{ product.image.url }}{% elif product.image_url %}{{ product.image_url }}{% else %}{% if product.category.name == 'Watches' %}{% static 'images/smartwatch.png' %}{% elif product.category.name == 'Headphones' %}{% static 'images/headphones.png' %}{% else %}{% static 'images/earbuds.png' %}{% endif %}{% endif %}"
+                             alt="{{ product.name }}"
+                             onerror="this.onerror=null;this.src=this.dataset.fb"
+                             data-fb="{% if product.category.name == 'Watches' %}{% static 'images/smartwatch.png' %}{% elif product.category.name == 'Headphones' %}{% static 'images/headphones.png' %}{% else %}{% static 'images/earbuds.png' %}{% endif %}"
+                             style="width: 100%; height: 120px; object-fit: contain; margin-bottom: 1rem; border-radius: 10px;">
                         <h4 style="font-size: 1rem; margin-bottom: 0.5rem;">{{ product.name }}</h4>
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span class="highlight" style="font-weight: 700;">${{ product.price }}</span>
@@ -119,7 +123,7 @@
     function selectProduct(id, name, price, stock) {
         document.getElementById('selected_product_id').value = id;
         document.getElementById('selected_name').innerText = name;
-        document.getElementById('unit_price').innerText = '$' + price;
+        document.getElementById('unit_price').innerText = formatPrice(price);
         document.getElementById('max_stock_label').innerText = 'Available: ' + stock;
         
         currentPrice = parseFloat(price);
@@ -134,7 +138,6 @@
         
         // Highlight selection
         cards.forEach(c => c.classList.remove('selected'));
-        // Find the card and add selected style (optional)
     }
 
     const qtyInput = document.getElementById('sale_quantity');
@@ -146,7 +149,7 @@
             qtyInput.value = currentStock;
         }
         const total = (parseInt(qtyInput.value) || 0) * currentPrice;
-        document.getElementById('total_sale_price').innerText = '$' + total.toFixed(2);
+        document.getElementById('total_sale_price').innerText = formatPrice(total);
     }
 </script>
 {% endblock %}

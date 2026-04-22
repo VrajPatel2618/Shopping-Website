@@ -1,0 +1,381 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<section class="aod-section">
+    <div class="aod-container">
+
+        <!-- Breadcrumb -->
+        <div class="aod-breadcrumb">
+            <a href="{% url 'user_panel' %}"><i class="fas fa-home"></i> Dashboard</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{% url 'admin_orders' %}">Orders</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Order #{{ order.id }}</span>
+        </div>
+
+        {% if messages %}
+        <div class="aod-messages">
+            {% for message in messages %}
+            <div class="aod-alert {{ message.tags }}">
+                <i class="fas fa-info-circle"></i> {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Status Banner -->
+        <div class="aod-status-banner
+            {% if order.status == 'pending' %}aod-sb-pending
+            {% elif order.status == 'accepted' %}aod-sb-accepted
+            {% elif order.status == 'completed' %}aod-sb-completed
+            {% endif %}">
+            {% if order.status == 'pending' %}
+                <i class="fas fa-clock"></i>
+                <div>
+                    <strong>Order Pending</strong>
+                    <p>This order is waiting to be accepted by the admin.</p>
+                </div>
+            {% elif order.status == 'accepted' %}
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Order Accepted</strong>
+                    <p>This order has been accepted and is being processed.</p>
+                </div>
+            {% elif order.status == 'completed' %}
+                <i class="fas fa-flag-checkered"></i>
+                <div>
+                    <strong>Order Completed</strong>
+                    <p>This order has been delivered and is now complete.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="aod-grid">
+
+            <!-- Left: Customer Info + Items -->
+            <div class="aod-left">
+
+                <!-- Customer Details -->
+                <div class="aod-card">
+                    <h3 class="aod-card-title"><i class="fas fa-user-circle"></i> Customer Details</h3>
+                    <div class="aod-info-grid">
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-user"></i> Name</span>
+                            <span class="aod-info-value">{{ order.user.get_full_name|default:order.user.username }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-at"></i> Username</span>
+                            <span class="aod-info-value">{{ order.user.username }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-envelope"></i> Email</span>
+                            <span class="aod-info-value">{{ order.user.email|default:"Not provided" }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-phone"></i> Phone</span>
+                            <span class="aod-info-value aod-na">Not available</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-map-marker-alt"></i> Address</span>
+                            <span class="aod-info-value aod-na">Not available</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label"><i class="fas fa-calendar-alt"></i> Joined</span>
+                            <span class="aod-info-value">{{ order.user.date_joined|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="aod-card" style="margin-top: 1.5rem;">
+                    <h3 class="aod-card-title"><i class="fas fa-shopping-bag"></i> Order Items</h3>
+                    <table class="aod-items-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Qty</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td>
+                                    <div class="aod-prod-cell">
+                                        {% if item.product.image %}
+                                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="aod-prod-img"
+                                                 onerror="this.src='{{ item.product.image_url|default:'' }}'">
+                                        {% elif item.product.image_url %}
+                                            <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="aod-prod-img"
+                                                 onerror="this.onerror=null; this.src='/static/images/placeholder.png'">
+                                        {% else %}
+                                            <div class="aod-prod-placeholder"><i class="fas fa-box"></i></div>
+                                        {% endif %}
+                                        <span>{{ item.product.name }}</span>
+                                    </div>
+                                </td>
+                                <td>₹{{ item.price_at_purchase }}</td>
+                                <td><span class="aod-qty">{{ item.quantity }}</span></td>
+                                <td><strong class="aod-subtotal">₹{% widthratio item.price_at_purchase 1 item.quantity %}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="aod-total-row">
+                                <td colspan="3" style="text-align:right; padding-right: 1rem; color: var(--text-sec);">Order Total</td>
+                                <td><strong class="aod-grand-total">₹{{ order.total_price }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right: Order Info + Actions -->
+            <div class="aod-right">
+
+                <!-- Order Summary -->
+                <div class="aod-card">
+                    <h3 class="aod-card-title"><i class="fas fa-receipt"></i> Order Summary</h3>
+                    <div class="aod-info-grid">
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Order ID</span>
+                            <span class="aod-info-value aod-order-id">#{{ order.id }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Date Placed</span>
+                            <span class="aod-info-value">{{ order.created_at|date:"M d, Y · H:i" }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Payment</span>
+                            <span class="aod-info-value">{{ order.payment_method|default:"Cash" }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Items</span>
+                            <span class="aod-info-value">{{ order.items.count }} item{{ order.items.count|pluralize }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Total Amount</span>
+                            <span class="aod-info-value" style="color: var(--accent); font-weight: 700; font-size: 1.1rem;">₹{{ order.total_price }}</span>
+                        </div>
+                        <div class="aod-info-row">
+                            <span class="aod-info-label">Status</span>
+                            <span>
+                                {% if order.status == 'pending' %}
+                                    <span class="aod-sbadge aod-sbadge-pending"><i class="fas fa-clock"></i> Pending</span>
+                                {% elif order.status == 'accepted' %}
+                                    <span class="aod-sbadge aod-sbadge-accepted"><i class="fas fa-check-circle"></i> Accepted</span>
+                                {% elif order.status == 'completed' %}
+                                    <span class="aod-sbadge aod-sbadge-completed"><i class="fas fa-flag-checkered"></i> Completed</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Actions -->
+                <div class="aod-card aod-actions-card" style="margin-top: 1.5rem;">
+                    <h3 class="aod-card-title"><i class="fas fa-tasks"></i> Admin Actions</h3>
+
+                    <!-- Progress Steps -->
+                    <div class="aod-progress">
+                        <div class="aod-step {% if order.status == 'pending' or order.status == 'accepted' or order.status == 'completed' %}aod-step-done{% endif %}">
+                            <div class="aod-step-icon"><i class="fas fa-shopping-cart"></i></div>
+                            <span>Placed</span>
+                        </div>
+                        <div class="aod-step-line {% if order.status == 'accepted' or order.status == 'completed' %}aod-line-done{% endif %}"></div>
+                        <div class="aod-step {% if order.status == 'accepted' or order.status == 'completed' %}aod-step-done{% endif %}">
+                            <div class="aod-step-icon"><i class="fas fa-check"></i></div>
+                            <span>Accepted</span>
+                        </div>
+                        <div class="aod-step-line {% if order.status == 'completed' %}aod-line-done{% endif %}"></div>
+                        <div class="aod-step {% if order.status == 'completed' %}aod-step-done{% endif %}">
+                            <div class="aod-step-icon"><i class="fas fa-truck"></i></div>
+                            <span>Delivered</span>
+                        </div>
+                        <div class="aod-step-line {% if order.status == 'completed' %}aod-line-done{% endif %}"></div>
+                        <div class="aod-step {% if order.status == 'completed' %}aod-step-done{% endif %}">
+                            <div class="aod-step-icon"><i class="fas fa-flag-checkered"></i></div>
+                            <span>Complete</span>
+                        </div>
+                    </div>
+
+                    <div class="aod-action-btns">
+                        {% if order.status == 'pending' %}
+                        <form method="POST" action="{% url 'admin_accept_order' order.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="aod-btn aod-btn-accept"
+                                    onclick="return confirm('Accept Order #{{ order.id }}?')">
+                                <i class="fas fa-check-circle"></i> Accept Order
+                            </button>
+                        </form>
+                        <p class="aod-hint">Click to confirm you have received and are processing this order.</p>
+
+                        {% elif order.status == 'accepted' %}
+                        <form method="POST" action="{% url 'admin_deliver_order' order.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="aod-btn aod-btn-deliver"
+                                    onclick="return confirm('Mark Order #{{ order.id }} as Delivered? This will complete the order.')">
+                                <i class="fas fa-truck"></i> Mark as Delivered
+                            </button>
+                        </form>
+                        <p class="aod-hint">Click once the order has been physically delivered to the customer.</p>
+
+                        {% elif order.status == 'completed' %}
+                        <div class="aod-completed-msg">
+                            <i class="fas fa-flag-checkered"></i>
+                            <div>
+                                <strong>Order Complete!</strong>
+                                <p>This order has been delivered and is fully completed.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Back / Invoice -->
+                <div style="display:flex; gap:0.75rem; margin-top:1.5rem; flex-wrap: wrap;">
+                    <a href="{% url 'admin_orders' %}" class="aod-btn aod-btn-outline" style="flex:1; text-align:center;">
+                        <i class="fas fa-arrow-left"></i> All Orders
+                    </a>
+                    <a href="{% url 'invoice_detail' order.id %}" class="aod-btn aod-btn-outline" style="flex:1; text-align:center;">
+                        <i class="fas fa-file-invoice"></i> Invoice
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<style>
+    .aod-section { min-height: 100vh; padding: 8rem 5% 4rem; background: var(--bg-secondary); }
+    .aod-container { max-width: 1100px; margin: 0 auto; }
+
+    /* Breadcrumb */
+    .aod-breadcrumb {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.85rem; color: var(--text-sec); margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .aod-breadcrumb a { color: var(--accent); text-decoration: none; }
+    .aod-breadcrumb a:hover { text-decoration: underline; }
+    .aod-breadcrumb i { font-size: 0.7rem; }
+
+    /* Messages */
+    .aod-messages { margin-bottom: 1.5rem; }
+    .aod-alert {
+        padding: 0.75rem 1.1rem; border-radius: 10px; font-size: 0.88rem;
+        margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .aod-alert.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #16a34a; }
+    .aod-alert.warning, .aod-alert.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #dc2626; }
+
+    /* Status Banner */
+    .aod-status-banner {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1.1rem 1.5rem; border-radius: 14px; margin-bottom: 2rem;
+        border: 1px solid;
+    }
+    .aod-status-banner i { font-size: 1.5rem; flex-shrink: 0; }
+    .aod-status-banner strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
+    .aod-status-banner p { font-size: 0.85rem; margin: 0; opacity: 0.85; }
+    .aod-sb-pending { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.35); color: #92400e; }
+    .aod-sb-pending i { color: #f59e0b; }
+    .aod-sb-accepted { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.35); color: #1e3a8a; }
+    .aod-sb-accepted i { color: #3b82f6; }
+    .aod-sb-completed { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.35); color: #065f46; }
+    .aod-sb-completed i { color: #10b981; }
+
+    /* Grid */
+    .aod-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; }
+    @media(max-width:900px) { .aod-grid { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .aod-card {
+        background: var(--bg-color); border: 1px solid var(--border);
+        border-radius: 16px; padding: 1.75rem; box-shadow: var(--shadow-lg);
+    }
+    .aod-card-title {
+        font-size: 1rem; font-weight: 700; color: var(--text-primary);
+        margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+    .aod-card-title i { color: var(--accent); }
+
+    /* Info rows */
+    .aod-info-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+    .aod-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; }
+    .aod-info-label { color: var(--text-sec); display: flex; align-items: center; gap: 0.4rem; }
+    .aod-info-label i { width: 14px; text-align: center; }
+    .aod-info-value { color: var(--text-primary); font-weight: 600; text-align: right; }
+    .aod-na { color: var(--text-sec); font-style: italic; font-weight: 400; }
+    .aod-order-id { color: var(--accent); font-weight: 800; }
+
+    /* Items table */
+    .aod-items-table { width: 100%; border-collapse: collapse; }
+    .aod-items-table th {
+        padding: 0.6rem 0.75rem; text-align: left; font-size: 0.75rem;
+        color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border);
+    }
+    .aod-items-table td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.88rem; vertical-align: middle; }
+    .aod-items-table tfoot td { border-bottom: none; padding-top: 1rem; }
+    .aod-prod-cell { display: flex; align-items: center; gap: 0.6rem; }
+    .aod-prod-img { width: 42px; height: 42px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); flex-shrink: 0; }
+    .aod-prod-placeholder { width: 42px; height: 42px; border-radius: 8px; background: var(--bg-secondary); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-sec); flex-shrink: 0; }
+    .aod-qty { background: var(--bg-secondary); border: 1px solid var(--border); padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .aod-subtotal { color: var(--text-primary); }
+    .aod-total-row td { font-size: 1rem; }
+    .aod-grand-total { font-size: 1.15rem; color: var(--accent); font-weight: 800; }
+
+    /* Status Badges */
+    .aod-sbadge { padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+    .aod-sbadge-pending { background: rgba(245,158,11,0.12); color: #b45309; border: 1px solid rgba(245,158,11,0.3); }
+    .aod-sbadge-accepted { background: rgba(59,130,246,0.12); color: #1d4ed8; border: 1px solid rgba(59,130,246,0.3); }
+    .aod-sbadge-completed { background: rgba(16,185,129,0.12); color: #047857; border: 1px solid rgba(16,185,129,0.3); }
+
+    /* Progress steps */
+    .aod-progress {
+        display: flex; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .aod-step { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; min-width: 55px; }
+    .aod-step-icon {
+        width: 38px; height: 38px; border-radius: 50%;
+        background: var(--bg-secondary); border: 2px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--text-sec); font-size: 0.85rem; transition: 0.3s;
+    }
+    .aod-step-done .aod-step-icon { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .aod-step span { font-size: 0.68rem; color: var(--text-sec); text-align: center; }
+    .aod-step-done span { color: var(--accent); font-weight: 600; }
+    .aod-step-line { flex: 1; height: 3px; background: var(--border); border-radius: 2px; transition: 0.3s; min-width: 10px; }
+    .aod-line-done { background: var(--accent); }
+
+    /* Action buttons */
+    .aod-action-btns { display: flex; flex-direction: column; gap: 0.75rem; }
+    .aod-btn {
+        display: flex; align-items: center; justify-content: center;
+        gap: 0.5rem; padding: 0.8rem 1.2rem; border-radius: 10px;
+        font-size: 0.9rem; font-weight: 700; cursor: pointer; border: none;
+        text-decoration: none; transition: 0.2s; width: 100%;
+    }
+    .aod-btn-accept { background: #3b82f6; color: #fff; }
+    .aod-btn-accept:hover { background: #1d4ed8; transform: translateY(-1px); }
+    .aod-btn-deliver { background: #10b981; color: #fff; }
+    .aod-btn-deliver:hover { background: #047857; transform: translateY(-1px); }
+    .aod-btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-primary); }
+    .aod-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .aod-hint { font-size: 0.75rem; color: var(--text-sec); margin-top: 0.25rem; text-align: center; }
+
+    .aod-completed-msg {
+        display: flex; align-items: flex-start; gap: 1rem;
+        background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+        border-radius: 10px; padding: 1.1rem;
+    }
+    .aod-completed-msg i { font-size: 1.5rem; color: #10b981; margin-top: 2px; flex-shrink: 0; }
+    .aod-completed-msg strong { display: block; color: #047857; margin-bottom: 0.2rem; }
+    .aod-completed-msg p { font-size: 0.82rem; color: var(--text-sec); margin: 0; }
+</style>
+{% endblock %}

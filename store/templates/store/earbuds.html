@@ -17,19 +17,27 @@
             </ul>
             <div style="display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">
                 <a href="{% url 'product_detail' product.id %}" class="btn btn-outline">View Details</a>
-                <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary">Add to Cart — ${{ product.price }}</a>
+                {% if not user.is_superuser %}
+                <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary">Add to Cart — ₹{{ product.price }}</a>
+                {% endif %}
             </div>
         </div>
         <div class="product-image">
             <div class="image-wrapper glassmorphic">
                 {% if product.image %}
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                         onerror="this.onerror=null;this.src='{% static 'images/earbuds.png' %}'">
                 {% elif product.image_url %}
-                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                         onerror="this.onerror=null;this.src='{% static 'images/earbuds.png' %}'">
                 {% else %}
                     <img src="{% static 'images/earbuds.png' %}" alt="{{ product.name }}">
                 {% endif %}
+                {% if product.stock > 0 %}
                 <div class="floating-badge">In Stock</div>
+                {% else %}
+                <div class="floating-badge coming-soon-badge">Coming Soon</div>
+                {% endif %}
             </div>
         </div>
     </div>

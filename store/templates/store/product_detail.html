@@ -19,11 +19,15 @@
             <div class="detail-image">
                 <div class="image-wrapper glassmorphic">
                     {% if product.image %}
-                        <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+                             onerror="this.onerror=null;this.src=this.dataset.fb"
+                             data-fb="{% if product.category.name == 'Watches' %}{% static 'images/smartwatch.png' %}{% elif product.category.name == 'Headphones' %}{% static 'images/headphones.png' %}{% else %}{% static 'images/earbuds.png' %}{% endif %}">
                     {% elif product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                             onerror="this.onerror=null;this.src=this.dataset.fb"
+                             data-fb="{% if product.category.name == 'Watches' %}{% static 'images/smartwatch.png' %}{% elif product.category.name == 'Headphones' %}{% static 'images/headphones.png' %}{% else %}{% static 'images/earbuds.png' %}{% endif %}">
                     {% else %}
-                        <img src="{% static 'images/earbuds.png' %}" alt="{{ product.name }}">
+                        <img src="{% if product.category.name == 'Watches' %}{% static 'images/smartwatch.png' %}{% elif product.category.name == 'Headphones' %}{% static 'images/headphones.png' %}{% else %}{% static 'images/earbuds.png' %}{% endif %}" alt="{{ product.name }}">
                     {% endif %}
                 </div>
             </div>
@@ -43,14 +47,16 @@
                 </div>
 
                 <div class="detail-actions">
-                    {% if product.stock > 0 %}
-                        <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary detail-btn">
-                            <i class="fas fa-shopping-bag"></i> Add to Cart
-                        </a>
-                    {% else %}
-                        <button class="btn btn-outline detail-btn" disabled style="opacity:0.5; cursor:not-allowed;">
-                            Unavailable
-                        </button>
+                    {% if not user.is_superuser %}
+                        {% if product.stock > 0 %}
+                            <a href="{% url 'add_to_cart' product.id %}" class="btn btn-primary detail-btn">
+                                <i class="fas fa-shopping-bag"></i> Add to Cart
+                            </a>
+                        {% else %}
+                            <button class="btn btn-outline detail-btn" disabled style="opacity:0.5; cursor:not-allowed;">
+                                Unavailable
+                            </button>
+                        {% endif %}
                     {% endif %}
                     <a href="{% url 'home' %}" class="btn btn-outline detail-btn">
                         <i class="fas fa-arrow-left"></i> Back
@@ -111,7 +117,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 4rem;
         align-items: center;
-        background: #fff;
+        background: var(--bg-color);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 2.5rem;
@@ -174,8 +180,8 @@
         margin-bottom: 1.8rem;
     }
 
-    .stock-badge.in-stock  { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
-    .stock-badge.out-stock  { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
+    .stock-badge.in-stock  { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #16a34a; }
+    .stock-badge.out-stock  { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.3); color: #dc2626; }
 
     .detail-actions {
         display: flex;
@@ -201,7 +207,7 @@
     }
 
     .related-card {
-        background: #fff;
+        background: var(--bg-color);
         border: 1px solid var(--border);
         border-radius: 12px;
         overflow: hidden;

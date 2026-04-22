@@ -1,0 +1,252 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<section class="ao-section">
+    <div class="ao-container">
+
+        <!-- Header -->
+        <div class="ao-header">
+            <div>
+                <h2><i class="fas fa-clipboard-list"></i> Orders <span class="highlight">Panel</span></h2>
+                <p class="ao-subtitle">Manage all customer orders from here</p>
+            </div>
+            <a href="{% url 'user_panel' %}" class="btn btn-outline ao-back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        {% if messages %}
+        <div class="ao-messages">
+            {% for message in messages %}
+            <div class="ao-alert {{ message.tags }}">
+                <i class="fas fa-info-circle"></i> {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Stats Bar -->
+        <div class="ao-stats">
+            {% with total=orders|length %}
+            <div class="ao-stat-card">
+                <span class="ao-stat-num">{{ total }}</span>
+                <span class="ao-stat-label">Total Orders</span>
+            </div>
+            {% endwith %}
+            <div class="ao-stat-card ao-stat-pending">
+                <span class="ao-stat-num" id="count-pending">0</span>
+                <span class="ao-stat-label">Pending</span>
+            </div>
+            <div class="ao-stat-card ao-stat-accepted">
+                <span class="ao-stat-num" id="count-accepted">0</span>
+                <span class="ao-stat-label">Accepted</span>
+            </div>
+            <div class="ao-stat-card ao-stat-completed">
+                <span class="ao-stat-num" id="count-completed">0</span>
+                <span class="ao-stat-label">Completed</span>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="ao-filter-tabs">
+            <button class="ao-tab active" data-filter="all" onclick="filterOrders('all', this)">All</button>
+            <button class="ao-tab" data-filter="pending" onclick="filterOrders('pending', this)">
+                <span class="ao-dot ao-dot-pending"></span> Pending
+            </button>
+            <button class="ao-tab" data-filter="accepted" onclick="filterOrders('accepted', this)">
+                <span class="ao-dot ao-dot-accepted"></span> Accepted
+            </button>
+            <button class="ao-tab" data-filter="completed" onclick="filterOrders('completed', this)">
+                <span class="ao-dot ao-dot-completed"></span> Completed
+            </button>
+        </div>
+
+        <!-- Orders Table -->
+        {% if orders %}
+        <div class="ao-table-wrap">
+            <table class="ao-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Email</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-tbody">
+                    {% for o in orders %}
+                    <tr class="ao-row" data-status="{{ o.status }}">
+                        <td><span class="ao-order-id">#{{ o.id }}</span></td>
+                        <td>
+                            <div class="ao-customer">
+                                <div class="ao-avatar">{{ o.user.username|slice:":1"|upper }}</div>
+                                <strong>{{ o.user.username }}</strong>
+                            </div>
+                        </td>
+                        <td class="ao-email">{{ o.user.email|default:"—" }}</td>
+                        <td>
+                            <span class="ao-item-count">{{ o.items.count }} item{{ o.items.count|pluralize }}</span>
+                        </td>
+                        <td><span class="ao-price">₹{{ o.total_price }}</span></td>
+                        <td class="ao-date">{{ o.created_at|date:"M d, Y" }}<br><small>{{ o.created_at|time:"H:i" }}</small></td>
+                        <td>
+                            {% if o.status == 'pending' %}
+                                <span class="ao-badge ao-badge-pending"><i class="fas fa-clock"></i> Pending</span>
+                            {% elif o.status == 'accepted' %}
+                                <span class="ao-badge ao-badge-accepted"><i class="fas fa-check-circle"></i> Accepted</span>
+                            {% elif o.status == 'completed' %}
+                                <span class="ao-badge ao-badge-completed"><i class="fas fa-flag-checkered"></i> Completed</span>
+                            {% else %}
+                                <span class="ao-badge ao-badge-pending">{{ o.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'admin_order_detail' o.id %}" class="ao-view-btn">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="ao-empty">
+            <i class="fas fa-inbox fa-3x"></i>
+            <p>No customer orders yet.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+<script>
+    // Count statuses and update stat cards
+    document.addEventListener('DOMContentLoaded', function () {
+        const rows = document.querySelectorAll('.ao-row');
+        let pending = 0, accepted = 0, completed = 0;
+        rows.forEach(r => {
+            const s = r.dataset.status;
+            if (s === 'pending') pending++;
+            else if (s === 'accepted') accepted++;
+            else if (s === 'completed') completed++;
+        });
+        document.getElementById('count-pending').textContent = pending;
+        document.getElementById('count-accepted').textContent = accepted;
+        document.getElementById('count-completed').textContent = completed;
+    });
+
+    function filterOrders(status, btn) {
+        document.querySelectorAll('.ao-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.ao-row').forEach(row => {
+            if (status === 'all' || row.dataset.status === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+<style>
+    .ao-section { min-height: 100vh; padding: 8rem 5% 4rem; background: var(--bg-secondary); }
+    .ao-container { max-width: 1100px; margin: 0 auto; }
+
+    .ao-header {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .ao-header h2 { font-size: 2rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem; }
+    .ao-header h2 i { color: var(--accent); }
+    .ao-subtitle { color: var(--text-sec); margin-top: 0.3rem; font-size: 0.9rem; }
+
+    .ao-messages { margin-bottom: 1.5rem; }
+    .ao-alert {
+        padding: 0.75rem 1.1rem; border-radius: 10px; font-size: 0.88rem;
+        margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .ao-alert.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #16a34a; }
+    .ao-alert.warning, .ao-alert.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #dc2626; }
+
+    /* Stats */
+    .ao-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .ao-stat-card {
+        background: var(--bg-color); border: 1px solid var(--border); border-radius: 14px;
+        padding: 1.25rem 1rem; text-align: center; transition: 0.2s;
+    }
+    .ao-stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .ao-stat-num { display: block; font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .ao-stat-label { font-size: 0.78rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+    .ao-stat-pending .ao-stat-num { color: #f59e0b; }
+    .ao-stat-accepted .ao-stat-num { color: #3b82f6; }
+    .ao-stat-completed .ao-stat-num { color: #10b981; }
+
+    /* Filter tabs */
+    .ao-filter-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .ao-tab {
+        padding: 0.5rem 1.2rem; border-radius: 30px; border: 1px solid var(--border);
+        background: var(--bg-color); color: var(--text-sec); font-size: 0.85rem;
+        cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .ao-tab:hover, .ao-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .ao-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .ao-dot-pending { background: #f59e0b; }
+    .ao-dot-accepted { background: #3b82f6; }
+    .ao-dot-completed { background: #10b981; }
+
+    /* Table */
+    .ao-table-wrap {
+        background: var(--bg-color); border: 1px solid var(--border);
+        border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-lg);
+    }
+    .ao-table { width: 100%; border-collapse: collapse; }
+    .ao-table thead tr { background: var(--bg-secondary); }
+    .ao-table th {
+        padding: 1rem 1.1rem; text-align: left; font-size: 0.78rem;
+        color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border);
+    }
+    .ao-table td { padding: 0.9rem 1.1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .ao-row:last-child td { border-bottom: none; }
+    .ao-row:hover td { background: var(--bg-secondary); }
+    .ao-row { transition: 0.15s; }
+
+    .ao-order-id { font-weight: 700; color: var(--accent); font-size: 0.9rem; }
+    .ao-customer { display: flex; align-items: center; gap: 0.6rem; }
+    .ao-avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), #7c3aed);
+        color: #fff; display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+    }
+    .ao-email { font-size: 0.82rem; color: var(--text-sec); }
+    .ao-item-count { background: var(--bg-secondary); border: 1px solid var(--border); padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; color: var(--text-sec); }
+    .ao-price { font-weight: 700; color: var(--text-primary); }
+    .ao-date { font-size: 0.83rem; color: var(--text-sec); }
+
+    /* Badges */
+    .ao-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .ao-badge-pending { background: rgba(245,158,11,0.12); color: #b45309; border: 1px solid rgba(245,158,11,0.3); }
+    .ao-badge-accepted { background: rgba(59,130,246,0.12); color: #1d4ed8; border: 1px solid rgba(59,130,246,0.3); }
+    .ao-badge-completed { background: rgba(16,185,129,0.12); color: #047857; border: 1px solid rgba(16,185,129,0.3); }
+
+    .ao-view-btn {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.4rem 0.9rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+        background: var(--accent-light, rgba(37,99,235,0.1)); color: var(--accent);
+        border: 1px solid var(--accent); text-decoration: none; transition: 0.2s;
+    }
+    .ao-view-btn:hover { background: var(--accent); color: #fff; }
+
+    .ao-empty { text-align: center; padding: 5rem 0; color: var(--text-sec); }
+    .ao-empty i { display: block; margin-bottom: 1rem; opacity: 0.4; }
+    .ao-empty p { font-size: 1rem; }
+
+    .ao-back-btn { padding: 0.5rem 1.2rem; font-size: 0.85rem; }
+</style>
+{% endblock %}

@@ -68,14 +68,26 @@ def search(request):
 
 
 def search_suggest(request):
-    """AJAX endpoint: returns up to 5 product name suggestions for autocomplete."""
+    """AJAX endpoint: returns up to 6 product suggestions with image and category."""
     q = request.GET.get('q', '').strip()
     data = []
     if q:
         products = Product.objects.filter(
             name__icontains=q, is_active=True
-        ).values('id', 'name', 'price')[:5]
-        data = list(products)
+        ).select_related('category')[:6]
+        for p in products:
+            image_url = ''
+            if p.image:
+                image_url = p.image.url
+            elif p.image_url:
+                image_url = p.image_url
+            data.append({
+                'id': p.id,
+                'name': p.name,
+                'price': str(p.price),
+                'image': image_url,
+                'category': p.category.name if p.category else '',
+            })
     return JsonResponse({'results': data})
 
 
@@ -143,8 +155,12 @@ def remove_from_cart(request, item_id):
 
 @login_required(login_url='login')
 def cart(request):
+    # Admin has no cart — redirect to Orders Panel
+    if request.user.is_superuser:
+        return redirect('admin_orders')
     order = Order.objects.filter(user=request.user, is_completed=False).first()
-    return render(request, "store/cart.html", {"order": order})
+    past_orders = Order.objects.filter(user=request.user, is_completed=True).order_by('-created_at')
+    return render(request, "store/cart.html", {"order": order, "past_orders": past_orders})
 
 @login_required(login_url='login')
 def checkout(request):
@@ -161,11 +177,12 @@ def checkout(request):
             product.save()
 
         order.is_completed = True
+        order.status = Order.STATUS_PENDING
         order.save()
         messages.success(request, "Your order has been placed successfully!")
     else:
         messages.warning(request, "Your cart is empty.")
-    return redirect('user_panel')
+    return redirect('cart')
 
 
 # -------------------------------------------------------
@@ -253,8 +270,7 @@ def user_panel(request):
             messages.error(request, f"Error: {str(e)}")
         return redirect('user_panel')
 
-    orders = Order.objects.filter(user=request.user, is_completed=True).order_by('-created_at')
-    context = {"orders": orders}
+    context = {}
     if request.user.is_superuser:
         context["all_products"] = Product.objects.all().order_by('-id')
         context["categories"] = Category.objects.all()
@@ -299,3 +315,133 @@ def logout_user(request):
     logout(request)
     messages.info(request, "You have successfully logged out.")
     return redirect("home")
+
+
+@login_required(login_url='login')
+def edit_profile(request):
+    user = request.user
+    # Detect if the user signed in via Google
+    is_google_user = user.socialaccount_set.filter(provider='google').exists()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "update_info":
+            new_username = request.POST.get("username", "").strip()
+            new_email    = request.POST.get("email", "").strip()
+
+            from django.contrib.auth.models import User as AuthUser
+            if new_username and new_username != user.username:
+                if AuthUser.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+                    messages.error(request, "That username is already taken.")
+                    return redirect("edit_profile")
+                user.username = new_username
+
+            if new_email:
+                user.email = new_email
+
+            user.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect("edit_profile")
+
+        elif action == "change_password" and not is_google_user:
+            current  = request.POST.get("current_password", "")
+            new_pw   = request.POST.get("new_password", "")
+            confirm  = request.POST.get("confirm_password", "")
+
+            if not user.check_password(current):
+                messages.error(request, "Current password is incorrect.")
+                return redirect("edit_profile")
+            if len(new_pw) < 8:
+                messages.error(request, "New password must be at least 8 characters.")
+                return redirect("edit_profile")
+            if new_pw != confirm:
+                messages.error(request, "New passwords do not match.")
+                return redirect("edit_profile")
+
+            user.set_password(new_pw)
+            user.save()
+            # Keep user logged in after password change
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, user)
+            messages.success(request, "Password changed successfully!")
+            return redirect("edit_profile")
+
+    return render(request, "store/edit_profile.html", {
+        "is_google_user": is_google_user,
+    })
+
+
+# -------------------------------------------------------
+# Delete Order
+# -------------------------------------------------------
+
+@login_required(login_url='login')
+def delete_order(request, order_id):
+    """Permanently delete a completed order for the logged-in user.
+    Because it deletes from the DB, it's also removed from Django admin."""
+    order = get_object_or_404(Order, id=order_id, user=request.user, is_completed=True)
+    if request.method == 'POST':
+        order_num = order.id
+        order.delete()  # CASCADE deletes all OrderItems too
+        messages.success(request, f"Order #{order_num} has been deleted.")
+    return redirect('cart')
+
+
+# -------------------------------------------------------
+# Admin Orders Panel
+# -------------------------------------------------------
+
+@login_required(login_url='login')
+def admin_orders(request):
+    """Admin-only: list all customer orders."""
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    orders = Order.objects.filter(is_completed=True).select_related('user').order_by('-created_at')
+    return render(request, 'store/admin_orders.html', {'orders': orders})
+
+
+@login_required(login_url='login')
+def admin_order_detail(request, order_id):
+    """Admin-only: view full details of a single order."""
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    order = get_object_or_404(Order, id=order_id, is_completed=True)
+    # Try to get profile (phone/address) if a UserProfile model exists
+    return render(request, 'store/admin_order_detail.html', {'order': order})
+
+
+@login_required(login_url='login')
+def admin_accept_order(request, order_id):
+    """Admin-only: mark order as Accepted."""
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id, is_completed=True)
+        if order.status == Order.STATUS_PENDING:
+            order.status = Order.STATUS_ACCEPTED
+            order.save()
+            messages.success(request, f"Order #{order.id} has been accepted.")
+        else:
+            messages.warning(request, f"Order #{order.id} cannot be accepted at this stage.")
+    return redirect('admin_order_detail', order_id=order_id)
+
+
+@login_required(login_url='login')
+def admin_deliver_order(request, order_id):
+    """Admin-only: mark order as Delivered → auto Completed."""
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied.")
+        return redirect('home')
+    if request.method == 'POST':
+        order = get_object_or_404(Order, id=order_id, is_completed=True)
+        if order.status == Order.STATUS_ACCEPTED:
+            order.status = Order.STATUS_COMPLETED
+            order.save()
+            messages.success(request, f"Order #{order.id} has been delivered and marked as Completed.")
+        else:
+            messages.warning(request, f"Order #{order.id} must be accepted before marking as delivered.")
+    return redirect('admin_order_detail', order_id=order_id)

@@ -69,7 +69,7 @@
     }
     .auth-container { width: 100%; max-width: 440px; }
     .auth-box {
-        background: #fff;
+        background: var(--bg-color);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 2.5rem 2.25rem;
@@ -90,7 +90,7 @@
         font-family: inherit; font-size: 0.95rem;
         transition: 0.2s ease;
     }
-    .form-group input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-group input:focus { outline: none; border-color: var(--accent); background: var(--bg-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
     .error-text { color: #EF4444; font-size: 0.78rem; }
     .auth-btn { width: 100%; justify-content: center; margin-top: 0.5rem; padding: 0.85rem; border-radius: 8px; font-size: 0.95rem; }
     .auth-footer { margin-top: 1.5rem; font-size: 0.88rem; color: var(--text-sec); }
@@ -101,7 +101,7 @@
     .btn-google {
         display: flex; align-items: center; justify-content: center; gap: 0.75rem;
         width: 100%; padding: 0.8rem 1rem;
-        background: #fff; border: 1.5px solid var(--border);
+        background: var(--bg-color); border: 1.5px solid var(--border);
         border-radius: 8px; color: var(--text-primary);
         font-family: inherit; font-size: 0.9rem; font-weight: 500;
         text-decoration: none; transition: all 0.2s ease; cursor: pointer;

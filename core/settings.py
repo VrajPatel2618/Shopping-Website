@@ -108,6 +108,14 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_VERIFICATION = "none"
 
+# ── Auto-create account on first Google login (no confirmation form) ──
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_STORE_TOKENS = False
+
+# New-style allauth signup config — email must be listed for Google OAuth to work
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {

@@ -14,12 +14,19 @@
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Anti-FOUC: Apply saved theme before paint -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme');
+            if (t && t !== 'default') document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 </head>
 
 <body>
 
     <nav class="navbar">
-        <div class="logo">Patel<span>.</span></div>
+        <a href="{% url 'home' %}" style="text-decoration: none;"><div class="logo">Patel</div></a>
         <ul class="nav-links">
             <li><a href="{% url 'home' %}"
                     class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a></li>
@@ -32,22 +39,68 @@
                     class="{% if request.resolver_match.url_name == 'watches' %}active{% endif %}">Watches</a></li>
         </ul>
         <div class="nav-icons" style="align-items: center;">
-            <div class="nav-search" id="nav-search">
-                <div style="position:relative;">
-                <form action="{% url 'search' %}" method="GET" class="nav-search-form" id="nav-search-form" autocomplete="off">
-                    <input type="text" name="q" id="nav-search-input" placeholder="Search products...">
-                    <button type="submit"><i class="fas fa-search"></i></button>
-                </form>
-                <div class="nav-suggest-dropdown" id="nav-suggest-dropdown"></div>
-                </div>
-                <button class="search-icon-btn" id="search-icon-btn" onclick="toggleNavSearch(event)">
-                    <i class="fas fa-search"></i>
+            <!-- Search trigger (opens overlay) -->
+            <button class="search-icon-btn" id="search-open-btn" title="Search" onclick="openSearchOverlay()">
+                <i class="fas fa-search"></i>
+            </button>
+            <!-- Theme Switcher -->
+            <div class="theme-switcher">
+                <button class="theme-btn" id="theme-toggle-btn" title="Change Theme">
+                    <i class="fas fa-circle-half-stroke" id="theme-icon"></i>
                 </button>
+                <div class="theme-dropdown" id="theme-dropdown">
+                    <button class="theme-option" data-theme="default" onclick="setTheme('default')">
+                        <i class="fas fa-circle-half-stroke"></i> Default
+                    </button>
+                    <button class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <i class="fas fa-sun"></i> Light
+                    </button>
+                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark')">
+                        <i class="fas fa-moon"></i> Dark
+                    </button>
+                </div>
             </div>
+
+            {% if user.is_superuser %}
+            <!-- Store Management Dropdown (Admin Only) -->
+            <div class="store-mgmt-wrapper" id="store-mgmt-wrapper">
+                <button class="store-mgmt-btn" id="store-mgmt-btn" title="Store Management" onclick="toggleStoreMgmt()">
+                    <i class="fas fa-store"></i>
+                    <i class="fas fa-chevron-down store-mgmt-arrow" id="store-mgmt-arrow"></i>
+                </button>
+                <div class="store-mgmt-dropdown" id="store-mgmt-dropdown">
+                    <a href="{% url 'admin_orders' %}" class="store-mgmt-item">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div>
+                            <span>Orders Panel</span>
+                            <small>Manage customer orders</small>
+                        </div>
+                    </a>
+                    <a href="{% url 'pos' %}" class="store-mgmt-item">
+                        <i class="fas fa-cash-register"></i>
+                        <div>
+                            <span>POS Terminal</span>
+                            <small>Point of sale system</small>
+                        </div>
+                    </a>
+                    <a href="{% url 'user_panel' %}" class="store-mgmt-item">
+                        <i class="fas fa-boxes"></i>
+                        <div>
+                            <span>Manage Products</span>
+                            <small>Add, edit & delete products</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not user.is_superuser %}
             <a href="{% url 'cart' %}" title="Shopping Cart"><i class="fas fa-shopping-bag"></i></a>
+            {% endif %}
             {% if user.is_authenticated %}
-            <a href="{% url 'user_panel' %}" title="Profile"><span
-                    style="font-size: 0.9rem; font-weight: 500; margin-right: 0.5rem;">{{ user.username }}</span></a>
+            <a href="{% url 'user_panel' %}" title="Profile">
+                <span style="font-size: 0.9rem; font-weight: 500; margin-right: 0.5rem;">{{ user.username }}</span>
+            </a>
             <a href="{% url 'logout' %}" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
             {% else %}
             <a href="{% url 'login' %}" title="Login"><i class="fas fa-user"></i></a>
@@ -62,9 +115,53 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- ── Full-Screen Search Overlay ── -->
+    <div id="search-overlay" class="search-overlay" onclick="overlayBgClick(event)">
+        <div class="search-overlay-panel">
+            <div class="search-overlay-top">
+                <form action="{% url 'search' %}" method="GET" id="overlay-form" autocomplete="off">
+                    <div class="overlay-input-wrap">
+                        <i class="fas fa-search overlay-search-icon"></i>
+                        <input type="text" name="q" id="overlay-input"
+                               placeholder="Search earbuds, headphones, watches…">
+                        <button type="button" class="overlay-close-btn" onclick="closeSearchOverlay()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Default: Category chips -->
+            <div id="overlay-default">
+                <p class="overlay-hint">Browse categories</p>
+                <div class="overlay-chips">
+                    <a href="{% url 'earbuds' %}" class="overlay-chip">
+                        <i class="fas fa-headphones-simple"></i> Earbuds
+                    </a>
+                    <a href="{% url 'headphones' %}" class="overlay-chip">
+                        <i class="fas fa-headphones"></i> Headphones
+                    </a>
+                    <a href="{% url 'watches' %}" class="overlay-chip">
+                        <i class="fas fa-clock"></i> Watches
+                    </a>
+                </div>
+                <p class="overlay-hint" style="margin-top:1.5rem;">Popular searches</p>
+                <div class="overlay-chips">
+                    <span class="overlay-tag" onclick="fillSearch('wireless earbuds')">wireless earbuds</span>
+                    <span class="overlay-tag" onclick="fillSearch('noise cancellation')">noise cancellation</span>
+                    <span class="overlay-tag" onclick="fillSearch('smartwatch')">smartwatch</span>
+                    <span class="overlay-tag" onclick="fillSearch('headphones')">headphones</span>
+                </div>
+            </div>
+
+            <!-- Live results -->
+            <div id="overlay-results" class="overlay-results" style="display:none;"></div>
+        </div>
+    </div>
+
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-logo">Patel<span>.</span></div>
+            <div class="footer-logo">Patel</div>
             <p>Premium Audio & Wearables. Redefining your digital experience with industry-leading technology.</p>
         </div>
         <div class="footer-bottom">
@@ -79,168 +176,286 @@
     <script src="{% static 'js/script.js' %}"></script>
 
     <style>
-        /* Navbar Search */
-        .nav-search { position: relative; display: flex; align-items: center; }
-        .nav-search-form {
-            display: flex;
-            align-items: center;
-            overflow: hidden;
-            max-width: 0;
-            opacity: 0;
-            transition: max-width 0.35s ease, opacity 0.3s ease;
-        }
-        .nav-search-form.open { max-width: 240px; opacity: 1; }
-        .nav-search-form input {
-            padding: 0.4rem 0.8rem;
-            background: var(--bg-secondary);
-            border: 1.5px solid var(--border);
-            border-radius: 8px 0 0 8px;
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.88rem;
-            outline: none;
-            width: 180px;
-        }
-        .nav-search-form input:focus { border-color: var(--accent); }
-        .nav-search-form button {
-            padding: 0.4rem 0.75rem;
-            background: var(--accent);
-            border: none;
-            border-radius: 0 8px 8px 0;
-            color: #fff;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
+        /* ── Search Icon btn ── */
         .search-icon-btn {
-            background: none;
-            border: none;
-            color: var(--text-sec);
-            font-size: 1rem;
-            cursor: pointer;
-            padding: 0.45rem 0.6rem;
-            border-radius: 8px;
-            transition: all 0.2s;
+            background: none; border: none;
+            color: var(--text-sec); font-size: 1rem;
+            cursor: pointer; padding: 0.45rem 0.6rem;
+            border-radius: 8px; transition: all 0.2s;
         }
         .search-icon-btn:hover { color: var(--accent); background: var(--accent-light); }
 
-        /* Nav autocomplete dropdown */
-        .nav-suggest-dropdown {
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            min-width: 260px;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-            z-index: 9999;
-            display: none;
-            box-shadow: var(--shadow-lg);
+        /* ── Store Management Dropdown ── */
+        .store-mgmt-wrapper { position: relative; }
+        .store-mgmt-btn {
+            display: flex; align-items: center; gap: 0.45rem;
+            background: none; border: none;
+            color: var(--text-sec); font-size: 1rem;
+            padding: 0.45rem 0.6rem; cursor: pointer;
+            border-radius: 8px; transition: all 0.2s;
+            font-family: inherit;
         }
-        .nav-suggest-dropdown.show { display: block; }
-        .nav-suggest-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.65rem 1rem;
-            text-decoration: none;
-            color: var(--text-primary);
-            font-size: 0.88rem;
-            transition: background 0.15s;
+        .store-mgmt-btn:hover { color: var(--accent); background: var(--accent-light); transform: none; box-shadow: none; }
+        .store-mgmt-btn .fa-store { font-size: 1rem; }
+        .store-mgmt-arrow { font-size: 0.65rem; transition: transform 0.25s; }
+        .store-mgmt-arrow.open { transform: rotate(180deg); }
+
+        .store-mgmt-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            background: var(--bg-color); border: 1px solid var(--border);
+            border-radius: 14px; min-width: 230px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+            overflow: hidden; z-index: 9999;
+            opacity: 0; pointer-events: none;
+            transform: translateY(-8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .store-mgmt-dropdown.open {
+            opacity: 1; pointer-events: all; transform: translateY(0);
+        }
+        .store-mgmt-item {
+            display: flex; align-items: center; gap: 0.9rem;
+            padding: 0.85rem 1.1rem; text-decoration: none;
+            color: var(--text-primary); transition: background 0.15s;
             border-bottom: 1px solid var(--border);
         }
-        .nav-suggest-item:last-child { border-bottom: none; }
-        .nav-suggest-item:hover { background: var(--accent-light); color: var(--accent); }
-        .nav-suggest-item .ns-name { font-weight: 500; }
-        .nav-suggest-item .ns-price { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+        .store-mgmt-item:last-child { border-bottom: none; }
+        .store-mgmt-item:hover { background: var(--accent-light); }
+        .store-mgmt-item > i {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent); font-size: 0.85rem; flex-shrink: 0;
+        }
+        .store-mgmt-item span { display: block; font-size: 0.88rem; font-weight: 600; }
+        .store-mgmt-item small { display: block; font-size: 0.73rem; color: var(--text-sec); margin-top: 1px; }
+
+        @media (max-width: 768px) { .store-mgmt-label { display: none; } }
+
+        /* ── Full-Screen Overlay ── */
+        .search-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            z-index: 99999;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 7rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .search-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .search-overlay-panel {
+            width: 100%;
+            max-width: 680px;
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.28s ease;
+        }
+        .search-overlay.open .search-overlay-panel { transform: translateY(0); }
+
+        .search-overlay-top { padding: 1.25rem 1.25rem 0; }
+        .overlay-input-wrap {
+            display: flex; align-items: center; gap: 0.75rem;
+            background: var(--bg-secondary);
+            border: 1.5px solid var(--border);
+            border-radius: 12px; padding: 0.75rem 1rem;
+            transition: border-color 0.2s;
+        }
+        .overlay-input-wrap:focus-within { border-color: var(--accent); }
+        .overlay-search-icon { color: var(--text-sec); font-size: 1rem; flex-shrink: 0; }
+        #overlay-input {
+            flex: 1; background: none; border: none; outline: none;
+            color: var(--text-primary); font-family: inherit;
+            font-size: 1.1rem; font-weight: 500;
+        }
+        #overlay-input::placeholder { color: var(--text-sec); }
+        .overlay-close-btn {
+            background: none; border: none;
+            color: var(--text-sec); cursor: pointer;
+            font-size: 1rem; padding: 0.2rem;
+            border-radius: 6px; transition: color 0.2s, background 0.2s;
+        }
+        .overlay-close-btn:hover { color: var(--accent); background: var(--accent-light); }
+
+        /* Default state */
+        #overlay-default { padding: 1.25rem 1.5rem 1.5rem; }
+        .overlay-hint { font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-sec); margin-bottom: 0.75rem; }
+        .overlay-chips { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+        .overlay-chip {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1.1rem;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 100px; color: var(--text-primary);
+            font-size: 0.88rem; font-weight: 500;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .overlay-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+        .overlay-chip i { color: var(--accent); }
+        .overlay-tag {
+            display: inline-block;
+            padding: 0.35rem 0.85rem;
+            background: var(--bg-secondary);
+            border: 1px dashed var(--border);
+            border-radius: 100px; color: var(--text-sec);
+            font-size: 0.82rem; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .overlay-tag:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* Live results */
+        .overlay-results { border-top: 1px solid var(--border); }
+        .overlay-result-item {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 0.85rem 1.5rem; text-decoration: none;
+            color: var(--text-primary); transition: background 0.15s;
+            border-bottom: 1px solid var(--border);
+        }
+        .overlay-result-item:last-child { border-bottom: none; }
+        .overlay-result-item:hover { background: var(--accent-light); }
+        .overlay-result-img {
+            width: 44px; height: 44px; object-fit: contain;
+            border-radius: 8px; background: var(--bg-secondary);
+            flex-shrink: 0; padding: 4px;
+        }
+        .overlay-result-info { flex: 1; }
+        .overlay-result-name { font-weight: 600; font-size: 0.95rem; }
+        .overlay-result-cat { font-size: 0.76rem; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+        .overlay-result-price { font-weight: 700; color: var(--accent); font-size: 0.95rem; }
+        .overlay-no-results { padding: 2rem; text-align: center; color: var(--text-sec); font-size: 0.9rem; }
+        .overlay-view-all {
+            display: block; text-align: center;
+            padding: 0.85rem; font-size: 0.88rem; font-weight: 600;
+            color: var(--accent); border-top: 1px solid var(--border);
+            text-decoration: none; transition: background 0.15s;
+        }
+        .overlay-view-all:hover { background: var(--accent-light); }
 
         /* Cart qty controls */
         .qty-controls {
-            display: flex;
-            align-items: center;
-            background: var(--bg-secondary);
-            border: 1.5px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
+            display: flex; align-items: center;
+            background: var(--bg-secondary); border: 1.5px solid var(--border);
+            border-radius: 8px; overflow: hidden;
         }
         .qty-btn {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-primary);
-            text-decoration: none;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background 0.2s;
+            width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-primary); text-decoration: none;
+            font-size: 1rem; font-weight: 600; transition: background 0.2s;
         }
         .qty-btn:hover { background: var(--accent); color: #fff; }
         .qty-num {
-            padding: 0 0.8rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            min-width: 30px;
-            text-align: center;
+            padding: 0 0.8rem; font-size: 0.9rem; font-weight: 600;
+            color: var(--text-primary); min-width: 30px; text-align: center;
         }
         .item-subtotal { font-size: 1rem; color: var(--accent); font-weight: 700; }
         .remove-btn {
-            color: #EF4444;
-            text-decoration: none;
-            font-size: 0.88rem;
-            padding: 0.4rem 0.5rem;
-            border-radius: 6px;
-            transition: all 0.2s;
+            color: #EF4444; text-decoration: none;
+            font-size: 0.88rem; padding: 0.4rem 0.5rem;
+            border-radius: 6px; transition: all 0.2s;
         }
-        .remove-btn:hover { background: #FEE2E2; }
+        .remove-btn:hover { background: rgba(239,68,68,0.1); }
     </style>
 
     <script>
-        function toggleNavSearch(e) {
-            e.stopPropagation();
-            const form = document.getElementById('nav-search-form');
-            const btn = document.getElementById('search-icon-btn');
-            const isOpen = form.classList.toggle('open');
-            if (isOpen) {
-                document.getElementById('nav-search-input').focus();
-                btn.style.display = 'none';
-            }
+        // ── Store Management Dropdown ──
+        function toggleStoreMgmt() {
+            const dd    = document.getElementById('store-mgmt-dropdown');
+            const arrow = document.getElementById('store-mgmt-arrow');
+            const isOpen = dd.classList.toggle('open');
+            arrow.classList.toggle('open', isOpen);
         }
         document.addEventListener('click', function(e) {
-            const wrapper = document.getElementById('nav-search');
+            const wrapper = document.getElementById('store-mgmt-wrapper');
             if (wrapper && !wrapper.contains(e.target)) {
-                document.getElementById('nav-search-form').classList.remove('open');
-                document.getElementById('search-icon-btn').style.display = '';
-                document.getElementById('nav-suggest-dropdown').classList.remove('show');
+                document.getElementById('store-mgmt-dropdown')?.classList.remove('open');
+                document.getElementById('store-mgmt-arrow')?.classList.remove('open');
             }
         });
 
-        // ── Navbar Live Autocomplete ──
+        // ── Search Overlay ──
+        function openSearchOverlay() {
+            const overlay = document.getElementById('search-overlay');
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('overlay-input').focus(), 80);
+        }
+        function closeSearchOverlay() {
+            document.getElementById('search-overlay').classList.remove('open');
+            document.body.style.overflow = '';
+            document.getElementById('overlay-input').value = '';
+            document.getElementById('overlay-results').style.display = 'none';
+            document.getElementById('overlay-default').style.display = 'block';
+        }
+        function overlayBgClick(e) {
+            if (e.target === document.getElementById('search-overlay')) closeSearchOverlay();
+        }
+        function fillSearch(term) {
+            document.getElementById('overlay-input').value = term;
+            document.getElementById('overlay-input').dispatchEvent(new Event('input'));
+            document.getElementById('overlay-input').focus();
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeSearchOverlay();
+        });
+
+        // ── Live Autocomplete in Overlay ──
         (function () {
-            const navInput    = document.getElementById('nav-search-input');
-            const navDropdown = document.getElementById('nav-suggest-dropdown');
-            let navTimer;
+            const input   = document.getElementById('overlay-input');
+            const results = document.getElementById('overlay-results');
+            const defView = document.getElementById('overlay-default');
+            let timer;
 
-            navInput.addEventListener('input', function () {
-                clearTimeout(navTimer);
+            input.addEventListener('input', function () {
+                clearTimeout(timer);
                 const q = this.value.trim();
-                if (!q) { navDropdown.classList.remove('show'); navDropdown.innerHTML = ''; return; }
-
-                navTimer = setTimeout(() => {
+                if (!q) {
+                    results.style.display = 'none';
+                    defView.style.display = 'block';
+                    return;
+                }
+                defView.style.display = 'none';
+                timer = setTimeout(() => {
                     fetch(`/search/suggest/?q=${encodeURIComponent(q)}`)
                         .then(r => r.json())
                         .then(data => {
-                            if (!data.results.length) { navDropdown.classList.remove('show'); navDropdown.innerHTML = ''; return; }
-                            navDropdown.innerHTML = data.results.map(p =>
-                                `<a class="nav-suggest-item" href="/product/${p.id}/">
-                                    <span class="ns-name">${p.name}</span>
-                                    <span class="ns-price">$${parseFloat(p.price).toFixed(2)}</span>
-                                </a>`
-                            ).join('');
-                            navDropdown.classList.add('show');
+                            if (!data.results.length) {
+                                results.innerHTML = `<div class="overlay-no-results"><i class="fas fa-search" style="opacity:.3;font-size:2rem;display:block;margin-bottom:.75rem;"></i>No products found for "${q}"</div>`;
+                                results.style.display = 'block';
+                                return;
+                            }
+                            results.innerHTML =
+                                data.results.map(p => `
+                                    <a class="overlay-result-item" href="/product/${p.id}/">
+                                        <img class="overlay-result-img" src="${p.image || ''}" alt="${p.name}" onerror="this.style.display='none'">
+                                        <div class="overlay-result-info">
+                                            <div class="overlay-result-name">${p.name}</div>
+                                            <div class="overlay-result-cat">${p.category || ''}</div>
+                                        </div>
+                                        <div class="overlay-result-price">${formatPrice(p.price)}</div>
+                                    </a>`).join('') +
+                                `<a class="overlay-view-all" href="/search/?q=${encodeURIComponent(q)}">View all results for "${q}" <i class="fas fa-arrow-right"></i></a>`;
+                            results.style.display = 'block';
                         });
-                }, 250);
+                }, 220);
+            });
+
+            // Submit on Enter
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    window.location.href = `/search/?q=${encodeURIComponent(this.value.trim())}`;
+                }
             });
         })();
     </script>
